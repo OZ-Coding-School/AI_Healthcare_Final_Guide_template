@@ -45,13 +45,14 @@ jobs:
   test:
     runs-on: ubuntu-latest
     services:
-      mysql:
-        image: mysql:8.0
+      postgres:
+        image: postgres:17
         env:
-          MYSQL_ROOT_PASSWORD: pw1234
-          MYSQL_DATABASE: ai_health
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: pw1234
+          POSTGRES_DB: ai_health
         ports:
-          - 3306:3306
+          - 5432:5432
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -67,7 +68,7 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: uv sync --group app --frozen
+        run: uv sync --frozen
 
       - name: Check if tests exist
         id: check_tests

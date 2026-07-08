@@ -28,7 +28,7 @@ class Config(BaseSettings):
     LOG_LEVEL: int = logging.INFO
 
     DB_HOST: str = "localhost"
-    DB_PORT: int = 3306
+    DB_PORT: int = 5432
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "pw1234"
     DB_NAME: str = "ai_health"
