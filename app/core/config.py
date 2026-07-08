@@ -50,9 +50,9 @@ class Config(BaseSettings):
     JWT_LEEWAY: int = 5
 
     SMTP_PORT: int = 587
-    SMTP_USERNAME: str
-    SMTP_PASSWORD: SecretStr
-    SMTP_FROM: str
+    SMTP_USERNAME: str = "example@gmail.com"
+    SMTP_PASSWORD: SecretStr = SecretStr("password")
+    SMTP_FROM: str = "example@gmail.com"
     SMTP_SERVER: str = "smtp.gmail.com"
     SMTP_START_TLS: bool = True
     SMTP_SSL_TLS: bool = False
