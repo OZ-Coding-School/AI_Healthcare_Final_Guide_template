@@ -1,0 +1,32 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace            # 줄 끝 공백 제거
+      - id: end-of-file-fixer              # 파일 끝 New line 추가
+      - id: check-yaml                     # YAML 파일 검사
+      - id: check-added-large-files        # 파일 크기 제한 검사
+        args: ['--maxkb=500']
+      - id: check-merge-conflict           # Git merge conflict 마커 검사
+      - id: debug-statements               # breakpoint(), pdb 등 디버그 코드 검사
+      - id: detect-private-key             # 프라이빗 키 작성여부 검사
+
+  # Ruff (포맷 + 린트)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.20
+    hooks:
+      - id: ruff-format
+      - id: ruff
+        args: [ --fix ]
+
+  # MyPy (정적 타입 검사)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.0
+    hooks:
+      - id: mypy
+        # FastAPI와 Pydantic 검사를 위한 의존성 주입
+        additional_dependencies:
+          - pydantic
+          - fastapi
+          - types-requests  # HTTP 클라이언트 테스트용 (선택)
+          - types-redis
