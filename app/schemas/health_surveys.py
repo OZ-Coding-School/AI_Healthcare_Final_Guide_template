@@ -51,6 +51,7 @@ class MonthlyHealthSurveyListResponse(BaseSerializerModel):
 
 class MonthlyHealthSurveyResponse(BaseSerializerModel):
     id: UUID
+    title: str
     smoking_status: HabitStatus
     smoking_fr_per_day: int | None
     drinking_status: HabitStatus
