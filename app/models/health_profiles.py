@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from tortoise import fields
 from uuid_utils import uuid7
 
-from ..core.enums import BloodSugarTestTiming, ExerciseType, Gender, HabitStatus
+from ..core.enums import BloodSugarMeasurementType, ExerciseType, Gender, HabitStatus
 from ..core.utils.common import get_enum_max_length
 from .base import TimestampModel
 
@@ -57,8 +57,8 @@ class BloodSugarMeasurement(TimestampModel):
         "models.User", related_name="blood_sugar_measurements"
     )
     measure_type = fields.CharEnumField(
-        enum_type=BloodSugarTestTiming,
-        max_length=get_enum_max_length(BloodSugarTestTiming),
+        enum_type=BloodSugarMeasurementType,
+        max_length=get_enum_max_length(BloodSugarMeasurementType),
         description="혈당 수치 테스트 유형",
     )
     blood_glucose = fields.SmallIntField(description="혈당 수치(mg/dL)")
@@ -75,7 +75,7 @@ class BloodSugarMeasurement(TimestampModel):
     has_medicated = fields.BooleanField(description="복약 여부")
     medicine_name = fields.CharField(max_length=100, null=True, description="복용한 약물명")
     minutes_since_medication = fields.SmallIntField(null=True, description="복약 후 경과 시간(분)")
-    memo = fields.TextField(null=True, description="참고사항(ex. 어떤걸 먹었고, 어떤 운동을 했는지 등)")
+    memo = fields.TextField(null=True, max_length=500, description="참고사항(ex. 어떤걸 먹었고, 어떤 운동을 했는지 등)")
     measured_at = fields.DatetimeField(description="측정시간")
 
     class Meta:
