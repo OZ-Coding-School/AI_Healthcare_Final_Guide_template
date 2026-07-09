@@ -12,7 +12,7 @@ class HabitStatus(StrEnum):
     CURRENT = "CURRENT"  # Currently smoking
 
 
-class BloodSugarTestTiming(StrEnum):
+class BloodSugarMeasurementType(StrEnum):
     FASTING = "FASTING"  # 공복
     BEFORE_BREAKFAST = "BEFORE_BREAKFAST"  # 아침 식전
     AFTER_BREAKFAST = "AFTER_BREAKFAST"  # 아침 식후
