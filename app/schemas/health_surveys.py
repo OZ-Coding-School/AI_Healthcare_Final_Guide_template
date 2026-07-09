@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, Self
 from uuid import UUID
 
@@ -40,6 +41,12 @@ class MonthlyHealthSurveyListFilter(BaseModel):
         if self.start_year and self.end_year and self.start_year > self.end_year:
             raise ValueError("start_year must be less than or equal to end_year")
         return self
+
+
+class MonthlyHealthSurveyListResponse(BaseSerializerModel):
+    id: UUID
+    title: str
+    created_at: datetime
 
 
 class MonthlyHealthSurveyResponse(BaseSerializerModel):

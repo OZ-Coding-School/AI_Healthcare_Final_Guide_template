@@ -8,6 +8,7 @@ from app.models.user_models import User
 from app.schemas.health_surveys import (
     MonthlyHealthSurveyCreateRequest,
     MonthlyHealthSurveyListFilter,
+    MonthlyHealthSurveyListResponse,
     MonthlyHealthSurveyResponse,
 )
 from app.services.health_survey import HealthSurveyService, get_health_survey_service
@@ -24,14 +25,14 @@ async def create_monthly_health_survey(
     await health_survey_service.create_monthly_health_survey(request_user.id, request_data)
 
 
-@health_survey_router.get("/", response_model=list[MonthlyHealthSurveyResponse], status_code=200)
+@health_survey_router.get("/", response_model=list[MonthlyHealthSurveyListResponse], status_code=200)
 async def get_monthly_health_survey_list(
     query_params: Annotated[MonthlyHealthSurveyListFilter, Query()],
     request_user: User = Depends(get_request_user),
     health_survey_service: HealthSurveyService = Depends(get_health_survey_service),
-) -> list[MonthlyHealthSurveyResponse]:
+) -> list[MonthlyHealthSurveyListResponse]:
     surveys = await health_survey_service.get_monthly_health_survey_list(request_user.id, query_params)
-    return [MonthlyHealthSurveyResponse.model_validate(survey) for survey in surveys]
+    return [MonthlyHealthSurveyListResponse.model_validate(survey) for survey in surveys]
 
 
 @health_survey_router.get("/{survey_id}", response_model=MonthlyHealthSurveyResponse, status_code=200)

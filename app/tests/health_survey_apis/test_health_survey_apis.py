@@ -151,6 +151,24 @@ class TestHealthSurveyAPI(TestCase):
         assert survey.drinking_fr_per_week == 2
         assert survey.drinking_amount_per_session == 3
 
+    async def test_get_monthly_health_survey_list(self):
+        user = await self._create_test_user("filter_test@example.com", "01022223333")
+        headers = self._get_auth_header(user)
+
+        await MonthlyHealthSurvey.create(
+            user=user,
+            smoking_status=HabitStatus.NEVER,
+            drinking_status=HabitStatus.NEVER,
+            systolic_bp=120,
+            diastolic_bp=80,
+        )
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            # 올해 데이터 조회
+            response = await client.get("/api/v1/health-survey/", headers=headers)
+            assert response.status_code == status.HTTP_200_OK
+            assert len(response.json()) == 1
+
     async def test_get_monthly_health_survey_list_filter_success(self):
         user = await self._create_test_user("filter_test@example.com", "01022223333")
         headers = self._get_auth_header(user)
