@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from starlette import status
 
 from app.dependencies.security import get_request_user
-from app.dtos.health_profiles import HealthProfileCreateRequest, HealthProfileResponse, HealthProfileUpdateRequest
 from app.models.user_models import User
+from app.schemas.health_profiles import HealthProfileCreateRequest, HealthProfileResponse, HealthProfileUpdateRequest
 from app.services.health_profiles import HealthProfileService, get_health_profile_service
 
 health_profile_router = APIRouter(prefix="/health-profile", tags=["health-profile"])

@@ -15,11 +15,11 @@ from app.core.utils.jwt.provider import JWTProvider
 from app.core.utils.jwt.tokens import AccessToken, RefreshToken
 from app.core.utils.redis import get_redis
 from app.core.utils.security import hash_password, verify_password
-from app.dtos.auth import LoginRequest, SignUpRequest
-from app.dtos.users import UserWithdrawRequest
 from app.models.user_models import User
 from app.repositories.user_repository import UserRepository
 from app.repositories.user_withdrawal_repository import UserWithdrawalRepository
+from app.schemas.auth import LoginRequest, SignUpRequest
+from app.schemas.users import UserWithdrawRequest
 from app.services.mail_service import MailService, get_mail_service
 
 

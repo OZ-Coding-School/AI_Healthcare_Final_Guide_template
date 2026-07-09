@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 
 from app.dependencies.security import get_request_user
-from app.dtos.users import UserInfoResponse, UserUpdateRequest
 from app.models.user_models import User
+from app.schemas.users import UserInfoResponse, UserUpdateRequest
 from app.services.users import UserService, get_user_service
 
 user_router = APIRouter(prefix="/users", tags=["users"])

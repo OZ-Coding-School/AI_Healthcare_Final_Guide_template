@@ -6,9 +6,9 @@ from fastapi.responses import JSONResponse as Response
 from app.core import settings
 from app.core.config import Env
 from app.dependencies.security import get_request_user
-from app.dtos.auth import LoginRequest, LoginResponse, SignUpRequest, TokenRefreshResponse
-from app.dtos.users import SendVerificationMailRequest, UserWithdrawRequest, VerifyMailRequest
 from app.models.user_models import User
+from app.schemas.auth import LoginRequest, LoginResponse, SignUpRequest, TokenRefreshResponse
+from app.schemas.users import SendVerificationMailRequest, UserWithdrawRequest, VerifyMailRequest
 from app.services.auth import AuthService, get_auth_service
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])

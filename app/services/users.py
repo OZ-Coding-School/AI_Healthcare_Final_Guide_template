@@ -4,10 +4,10 @@ from fastapi import Depends, HTTPException
 from starlette import status
 
 from app.core.utils.common import normalize_phone_number
-from app.dtos.users import UserUpdateRequest
 from app.models.user_models import User
 from app.repositories.user_repository import UserRepository
 from app.repositories.user_withdrawal_repository import UserWithdrawalRepository
+from app.schemas.users import UserUpdateRequest
 
 
 class UserService:

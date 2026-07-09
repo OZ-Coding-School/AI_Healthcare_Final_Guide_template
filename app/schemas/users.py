@@ -6,7 +6,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 from app.core.enums import WithdrawalReason
 from app.core.validators import optional_after_validator, validate_phone_number
-from app.dtos.base import BaseSerializerModel
+from app.schemas.base import BaseSerializerModel
 
 
 class UserUpdateRequest(BaseModel):

@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.core import settings
 from app.core.enums import Gender
-from app.dtos.base import BaseSerializerModel
+from app.schemas.base import BaseSerializerModel
 
 Height = Annotated[
     Decimal,

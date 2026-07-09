@@ -3,9 +3,9 @@ from uuid import UUID
 from fastapi import Depends, HTTPException
 from tortoise.exceptions import IntegrityError
 
-from app.dtos.health_profiles import HealthProfileCreateRequest, HealthProfileUpdateRequest
 from app.models.health_profiles import HealthProfile
 from app.repositories.health_profile_repository import HealthProfileRepository
+from app.schemas.health_profiles import HealthProfileCreateRequest, HealthProfileUpdateRequest
 
 
 class HealthProfileService:
