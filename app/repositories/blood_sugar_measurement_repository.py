@@ -23,7 +23,7 @@ class BloodSugarMeasurementCreateSchema(TypedDict):
 
 
 class BloodSugarMeasurementRepository:
-    async def create(self, user_id: UUID, **data: BloodSugarMeasurementCreateSchema) -> BloodSugarMeasurement:
+    async def create(self, user_id: UUID, data: BloodSugarMeasurementCreateSchema) -> BloodSugarMeasurement:
         return await BloodSugarMeasurement.create(user_id=user_id, **data)
 
     async def get_list_by_user_id(self, user_id: UUID) -> list[BloodSugarMeasurement]:

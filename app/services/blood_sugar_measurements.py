@@ -23,7 +23,7 @@ class BloodSugarMeasurementService:
     async def create_blood_sugar_measurement(
         self, user_id: UUID, data: BloodSugarMeasurementCreateRequest
     ) -> BloodSugarMeasurement:
-        return await self.repo.create(user_id, **data.model_dump(exclude_unset=True))
+        return await self.repo.create(user_id, data.model_dump(exclude_unset=True))
 
 
 def get_blood_sugar_measurement_service(
