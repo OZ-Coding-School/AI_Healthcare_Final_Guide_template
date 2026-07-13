@@ -1,6 +1,6 @@
 from tortoise import fields
 from tortoise.fields import OneToOneNullableRelation
-from uuid_utils import uuid7
+from uuid6 import uuid7
 
 from ..core.enums import WithdrawalReason
 from ..core.utils.common import get_enum_max_length
