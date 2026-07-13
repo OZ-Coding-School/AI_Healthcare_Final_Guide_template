@@ -19,6 +19,7 @@ class TestHealthProfileAPI(TestCase):
             "phone_number": "01011113333",
         }
         self.login_data = {"email": "hp_test@example.com", "password": "Password123!"}
+        self.api_path = "api/v1/health-profiles"
 
     async def get_token(self, client: AsyncClient):
         with patch("app.services.auth.AuthService.ensure_signup_email_verified", AsyncMock()):
@@ -40,7 +41,7 @@ class TestHealthProfileAPI(TestCase):
                 "has_hypertension": False,
             }
 
-            response = await client.post("/api/v1/health-profile/", json=hp_data, headers=headers)
+            response = await client.post(self.api_path, json=hp_data, headers=headers)
             assert response.status_code == status.HTTP_201_CREATED
 
     async def test_get_health_profile_success(self):
@@ -57,10 +58,10 @@ class TestHealthProfileAPI(TestCase):
                 "has_diabetes": True,
                 "has_hypertension": False,
             }
-            await client.post("/api/v1/health-profile/", json=hp_data, headers=headers)
+            await client.post(self.api_path, json=hp_data, headers=headers)
 
             # 조회
-            response = await client.get("/api/v1/health-profile/", headers=headers)
+            response = await client.get(self.api_path, headers=headers)
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert data["gender"] == Gender.FEMALE
@@ -81,11 +82,11 @@ class TestHealthProfileAPI(TestCase):
                 "has_diabetes": False,
                 "has_hypertension": False,
             }
-            await client.post("/api/v1/health-profile/", json=hp_data, headers=headers)
+            await client.post(self.api_path, json=hp_data, headers=headers)
 
             # 수정
             update_data = {"weight": 78.5, "has_hypertension": True}
-            response = await client.patch("/api/v1/health-profile/", json=update_data, headers=headers)
+            response = await client.patch(self.api_path, json=update_data, headers=headers)
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert data["weight"] == "78.5"
@@ -95,7 +96,7 @@ class TestHealthProfileAPI(TestCase):
     async def test_health_profile_unauthorized(self):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             # 토큰 없이 요청
-            response = await client.get("/api/v1/health-profile/")
+            response = await client.get(self.api_path)
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     async def test_create_health_profile_invalid_data(self):
@@ -113,5 +114,5 @@ class TestHealthProfileAPI(TestCase):
                 "has_hypertension": False,
             }
 
-            response = await client.post("/api/v1/health-profile/", json=hp_data, headers=headers)
+            response = await client.post(self.api_path, json=hp_data, headers=headers)
             assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT

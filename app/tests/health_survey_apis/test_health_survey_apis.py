@@ -13,6 +13,7 @@ class TestHealthSurveyAPI(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.jwt_provider = JWTProvider()
+        self.api_path = "api/v1/health-surveys"
 
     async def _create_test_user(
         self, email: str = "survey_test@example.com", phone_number: str = "01099998888"
@@ -42,7 +43,7 @@ class TestHealthSurveyAPI(TestCase):
         }
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.post("/api/v1/health-survey/", json=survey_data, headers=headers)
+            response = await client.post(self.api_path, json=survey_data, headers=headers)
 
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -63,9 +64,9 @@ class TestHealthSurveyAPI(TestCase):
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             # 첫 번째 제출
-            await client.post("/api/v1/health-survey/", json=survey_data, headers=headers)
+            await client.post(self.api_path, json=survey_data, headers=headers)
             # 두 번째 제출 (같은 달)
-            response = await client.post("/api/v1/health-survey/", json=survey_data, headers=headers)
+            response = await client.post(self.api_path, json=survey_data, headers=headers)
 
         assert response.status_code == status.HTTP_409_CONFLICT
         assert response.json()["detail"] == "Monthly Health Survey already submitted this month."
@@ -83,7 +84,7 @@ class TestHealthSurveyAPI(TestCase):
         }
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.post("/api/v1/health-survey/", json=survey_data_smoking, headers=headers)
+            response = await client.post(self.api_path, json=survey_data_smoking, headers=headers)
             assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
             assert "smoking_fr_per_day is required." in response.text
 
@@ -95,7 +96,7 @@ class TestHealthSurveyAPI(TestCase):
             "diastolic_bp": 80,
         }
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.post("/api/v1/health-survey/", json=survey_data_drinking, headers=headers)
+            response = await client.post(self.api_path, json=survey_data_drinking, headers=headers)
             assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
             assert "drinking_fr_per_week, drinking_amount_per_session are required." in response.text
 
@@ -116,7 +117,7 @@ class TestHealthSurveyAPI(TestCase):
         }
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.post("/api/v1/health-survey/", json=survey_data, headers=headers)
+            response = await client.post(self.api_path, json=survey_data, headers=headers)
 
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -142,7 +143,7 @@ class TestHealthSurveyAPI(TestCase):
         }
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.post("/api/v1/health-survey/", json=survey_data, headers=headers)
+            response = await client.post(self.api_path, json=survey_data, headers=headers)
 
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -165,7 +166,7 @@ class TestHealthSurveyAPI(TestCase):
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             # 올해 데이터 조회
-            response = await client.get("/api/v1/health-survey/", headers=headers)
+            response = await client.get(self.api_path, headers=headers)
             assert response.status_code == status.HTTP_200_OK
             assert len(response.json()) == 1
 
@@ -190,13 +191,13 @@ class TestHealthSurveyAPI(TestCase):
             # 올해 데이터 조회
             current_year = date.today().year
             response = await client.get(
-                f"/api/v1/health-survey/?start_year={current_year}&end_year={current_year}", headers=headers
+                f"{self.api_path}?start_year={current_year}&end_year={current_year}", headers=headers
             )
             assert response.status_code == status.HTTP_200_OK
             assert len(response.json()) == 1
 
             # 내년 데이터 조회 (없어야 함)
-            response = await client.get(f"/api/v1/health-survey/?start_year={current_year + 1}", headers=headers)
+            response = await client.get(f"{self.api_path}?start_year={current_year + 1}", headers=headers)
             assert response.status_code == status.HTTP_200_OK
             assert len(response.json()) == 0
 
@@ -206,7 +207,7 @@ class TestHealthSurveyAPI(TestCase):
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             # start_year > end_year
-            response = await client.get("/api/v1/health-survey/?start_year=2024&end_year=2023", headers=headers)
+            response = await client.get(f"{self.api_path}?start_year=2024&end_year=2023", headers=headers)
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         assert "start_year must be less than or equal to end_year" in response.text
@@ -224,7 +225,7 @@ class TestHealthSurveyAPI(TestCase):
         )
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.get(f"/api/v1/health-survey/{survey.id}", headers=headers)
+            response = await client.get(f"{self.api_path}/{survey.id}", headers=headers)
 
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["id"] == str(survey.id)
@@ -238,7 +239,7 @@ class TestHealthSurveyAPI(TestCase):
         fake_id = uuid.uuid4()
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.get(f"/api/v1/health-survey/{fake_id}", headers=headers)
+            response = await client.get(f"{self.api_path}/{fake_id}", headers=headers)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json()["detail"] == "Monthly Health Survey Not Found."
@@ -260,7 +261,7 @@ class TestHealthSurveyAPI(TestCase):
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             # User 1이 User 2의 데이터를 조회 시도
-            response = await client.get(f"/api/v1/health-survey/{survey_user2.id}", headers=headers1)
+            response = await client.get(f"{self.api_path}/{survey_user2.id}", headers=headers1)
 
         # Repository.get_by_id 에서 user_id를 같이 필터링하므로 None이 반환되고,
         # Service에서 404를 발생시킴
@@ -268,7 +269,7 @@ class TestHealthSurveyAPI(TestCase):
 
     async def test_unauthorized_access(self):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.get("/api/v1/health-survey/")
+            response = await client.get(self.api_path)
 
         # 인증 헤더가 없으면 401
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
