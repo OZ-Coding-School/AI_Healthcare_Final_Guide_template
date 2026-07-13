@@ -46,10 +46,10 @@ class ChallengeStatus(StrEnum):
 
 
 class ExerciseType(StrEnum):
-    CARDIO = "CARDIO"
-    STRENGTH = "STRENGTH"
-    BOTH = "BOTH"
-    NOT_APPLICABLE = "NOT_APPLICABLE"
+    CARDIO = "CARDIO"  # 유산소
+    STRENGTH = "STRENGTH"  # 근력
+    BOTH = "BOTH"  # 유산소, 근력 둘다
+    NOT_APPLICABLE = "NOT_APPLICABLE"  # 해당사항 없음
 
 
 class WithdrawalReason(StrEnum):
