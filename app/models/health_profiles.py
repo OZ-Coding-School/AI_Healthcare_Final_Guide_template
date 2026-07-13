@@ -88,7 +88,7 @@ class BloodSugarMeasurement(TimestampModel):
     exercise_type = fields.CharEnumField(
         enum_type=ExerciseType,
         max_length=get_enum_max_length(ExerciseType),
-        default=ExerciseType.NOT_APPLICABLE,
+        null=True,
         description="운동 유형",
     )
     exercise_minutes = fields.SmallIntField(null=True, description="운동 시간(분)")
