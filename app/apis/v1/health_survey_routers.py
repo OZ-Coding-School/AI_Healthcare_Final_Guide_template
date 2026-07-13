@@ -13,10 +13,10 @@ from app.schemas.health_surveys import (
 )
 from app.services.health_survey import HealthSurveyService, get_health_survey_service
 
-health_survey_router = APIRouter(prefix="/health-survey", tags=["health-survey"])
+health_survey_router = APIRouter(prefix="/health-surveys", tags=["health-survey"])
 
 
-@health_survey_router.post("/", status_code=201)
+@health_survey_router.post("", status_code=201)
 async def create_monthly_health_survey(
     request_data: MonthlyHealthSurveyCreateRequest,
     request_user: User = Depends(get_request_user),
@@ -25,7 +25,7 @@ async def create_monthly_health_survey(
     await health_survey_service.create_monthly_health_survey(request_user.id, request_data)
 
 
-@health_survey_router.get("/", response_model=list[MonthlyHealthSurveyListResponse], status_code=200)
+@health_survey_router.get("", response_model=list[MonthlyHealthSurveyListResponse], status_code=200)
 async def get_monthly_health_survey_list(
     query_params: Annotated[MonthlyHealthSurveyListFilter, Query()],
     request_user: User = Depends(get_request_user),

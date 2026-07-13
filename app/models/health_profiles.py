@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from tortoise import BaseDBAsyncClient, fields
-from uuid_utils import uuid7
+from uuid6 import uuid7
 
 from ..core.enums import BloodSugarMeasurementType, ExerciseType, Gender, HabitStatus
 from ..core.utils.common import get_enum_max_length
@@ -88,7 +88,7 @@ class BloodSugarMeasurement(TimestampModel):
     exercise_type = fields.CharEnumField(
         enum_type=ExerciseType,
         max_length=get_enum_max_length(ExerciseType),
-        default=ExerciseType.NOT_APPLICABLE,
+        null=True,
         description="운동 유형",
     )
     exercise_minutes = fields.SmallIntField(null=True, description="운동 시간(분)")

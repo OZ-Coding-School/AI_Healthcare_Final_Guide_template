@@ -28,7 +28,7 @@ app = [
     "orjson>=3.11.5",
     "pyjwt>=2.10.1",
     "tortoise-orm>=0.25.3",
-    "uuid-utils>=0.16.2",
+    "uuid6>=2025.0.1",
     "uvicorn>=0.40.0",
 ]
 dev = [

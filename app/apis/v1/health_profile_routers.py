@@ -6,10 +6,10 @@ from app.models.user_models import User
 from app.schemas.health_profiles import HealthProfileCreateRequest, HealthProfileResponse, HealthProfileUpdateRequest
 from app.services.health_profiles import HealthProfileService, get_health_profile_service
 
-health_profile_router = APIRouter(prefix="/health-profile", tags=["health-profile"])
+health_profile_router = APIRouter(prefix="/health-profiles", tags=["health-profile"])
 
 
-@health_profile_router.post("/", status_code=status.HTTP_201_CREATED)
+@health_profile_router.post("", status_code=status.HTTP_201_CREATED)
 async def create_health_profile(
     request_data: HealthProfileCreateRequest,
     request_user: User = Depends(get_request_user),
@@ -18,7 +18,7 @@ async def create_health_profile(
     await health_profile_service.create_health_profile(request_user.id, request_data)
 
 
-@health_profile_router.get("/", response_model=HealthProfileResponse, status_code=status.HTTP_200_OK)
+@health_profile_router.get("", response_model=HealthProfileResponse, status_code=status.HTTP_200_OK)
 async def get_health_profile(
     request_user: User = Depends(get_request_user),
     health_profile_service: HealthProfileService = Depends(get_health_profile_service),
@@ -27,7 +27,7 @@ async def get_health_profile(
     return HealthProfileResponse.model_validate(health_profile)
 
 
-@health_profile_router.patch("/", response_model=HealthProfileResponse, status_code=status.HTTP_200_OK)
+@health_profile_router.patch("", response_model=HealthProfileResponse, status_code=status.HTTP_200_OK)
 async def update_health_profile(
     request_data: HealthProfileUpdateRequest,
     request_user: User = Depends(get_request_user),

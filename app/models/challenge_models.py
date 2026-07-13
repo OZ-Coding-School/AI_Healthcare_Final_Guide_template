@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from tortoise import fields
-from uuid_utils import uuid7
+from uuid6 import uuid7
 
 from app.core.enums import ChallengeStatus, ChallengeType
 from app.models.base import TimestampModel
