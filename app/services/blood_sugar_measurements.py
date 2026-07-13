@@ -4,15 +4,17 @@ from fastapi import Depends, HTTPException
 
 from app.models.health_profiles import BloodSugarMeasurement
 from app.repositories.blood_sugar_measurement_repository import BloodSugarMeasurementRepository
-from app.schemas.blood_sugar_measurements import BloodSugarMeasurementCreateRequest
+from app.schemas.blood_sugar_measurements import BloodSugarMeasurementCreateRequest, BloodSugarMeasurementListFilter
 
 
 class BloodSugarMeasurementService:
     def __init__(self, blood_sugar_measurement_repo: BloodSugarMeasurementRepository) -> None:
         self.repo = blood_sugar_measurement_repo
 
-    async def get_blood_sugar_measurements(self, user_id: UUID) -> list[BloodSugarMeasurement]:
-        return await self.repo.get_list_by_user_id(user_id)
+    async def get_blood_sugar_measurements(
+        self, user_id: UUID, query_params: BloodSugarMeasurementListFilter
+    ) -> list[BloodSugarMeasurement]:
+        return await self.repo.get_filtered_list(user_id=user_id, **query_params.model_dump(exclude_unset=True))
 
     async def get_blood_sugar_measurement_by_id(self, user_id: UUID, measurement_id: UUID) -> BloodSugarMeasurement:
         measurement = await self.repo.get_by_id(user_id, measurement_id)

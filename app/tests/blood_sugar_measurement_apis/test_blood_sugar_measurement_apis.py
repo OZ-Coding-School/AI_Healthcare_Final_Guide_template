@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from httpx import ASGITransport, AsyncClient
 from starlette import status
@@ -156,6 +156,61 @@ class TestBloodSugarMeasurementAPI(TestCase):
         data = response.json()
         assert isinstance(data, list)
         assert len(data) == 2
+
+    async def test_get_blood_sugar_measurements_list_when_query_params_provided(self) -> None:
+        now = datetime.now(UTC)
+        # 테스트 데이터 생성
+        await BloodSugarMeasurement.create(
+            user=self.test_user,
+            measure_type=BloodSugarMeasurementType.AFTER_BREAKFAST,
+            blood_glucose=130,
+            has_exercised=False,
+            has_medicated=True,
+            medicine_name="Insulin",
+            minutes_since_medication=10,
+            measured_at=now,
+        )
+
+        await BloodSugarMeasurement.create(
+            user=self.test_user,
+            measure_type=BloodSugarMeasurementType.BEFORE_LUNCH,
+            blood_glucose=110,
+            has_exercised=False,
+            has_medicated=True,
+            medicine_name="Insulin",
+            minutes_since_medication=170,
+            measured_at=now + timedelta(minutes=160),
+        )
+
+        # 필터 범위 밖 측정 기록 생성
+        excluded_measurement = await BloodSugarMeasurement.create(
+            user=self.test_user,
+            measure_type=BloodSugarMeasurementType.BEFORE_LUNCH,
+            blood_glucose=110,
+            has_exercised=False,
+            has_medicated=True,
+            medicine_name="Insulin",
+            minutes_since_medication=170,
+            measured_at=now + timedelta(days=3),
+        )
+
+        query_params = {
+            "start_date": str(now.date()),
+            "end_date": str(now.date() + timedelta(days=1)),
+        }
+        async with AsyncClient(transport=ASGITransport(app=app), base_url=self.base_url) as client:
+            response = await client.get(self.api_path, headers=self.headers, params=query_params)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 2
+        assert excluded_measurement not in data  # 필터링 되었는지 확인
+        assert data[0]["measured_at"] < data[1]["measured_at"]  # measured_at 정렬 확인
+        assert (
+            data[0]["measure_type"] == BloodSugarMeasurementType.AFTER_BREAKFAST.value
+        )  # 정렬된 순서에 따라 올바른값을 가지고 있는지 확인
+        assert data[1]["measure_type"] == BloodSugarMeasurementType.BEFORE_LUNCH.value
 
     async def test_get_blood_sugar_measurement_by_id_success(self) -> None:
         measurement = await BloodSugarMeasurement.create(

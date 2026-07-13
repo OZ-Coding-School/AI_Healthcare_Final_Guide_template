@@ -1,5 +1,5 @@
-from datetime import datetime
-from typing import Self
+from datetime import date, datetime
+from typing import Annotated, Self
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
@@ -68,3 +68,25 @@ class BloodSugarMeasurementResponse(BaseSerializerModel):
         None, min_length=0, max_length=500, description="혈당 측정 시 참고메모(식사, 운동, 복약 관련)"
     )
     measured_at: datetime
+    created_at: datetime
+
+
+class BloodSugarMeasurementListResponse(BaseSerializerModel):
+    id: UUID
+    measure_type: BloodSugarMeasurementType
+    measured_at: datetime
+    created_at: datetime
+
+
+class BloodSugarMeasurementListFilter(BaseModel):
+    start_date: Annotated[date | None, Field(ge=date(2000, 1, 1))] = None
+    end_date: Annotated[date | None, Field(ge=date(2000, 1, 1))] = None
+
+    @model_validator(mode="after")
+    def validate_year_range(self) -> Self:
+        if self.start_date and self.end_date is None:
+            raise ValueError("end_date must be provided if start_date is provided")
+
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            raise ValueError("start_date must be less than or equal to end_date")
+        return self
