@@ -27,6 +27,11 @@ class BloodSugarMeasurementService:
     ) -> BloodSugarMeasurement:
         return await self.repo.create(user_id, data.model_dump(exclude_unset=True))
 
+    async def delete_blood_sugar_measurement_by_id(self, user_id: UUID, measurement_id: UUID) -> None:
+        deleted_count = await self.repo.delete_by_id(user_id, measurement_id)
+        if deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Blood Sugar Measurement Not Found.")
+
 
 def get_blood_sugar_measurement_service(
     repo: BloodSugarMeasurementRepository = Depends(BloodSugarMeasurementRepository),

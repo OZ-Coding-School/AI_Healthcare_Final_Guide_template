@@ -267,3 +267,35 @@ class TestBloodSugarMeasurementAPI(TestCase):
             response = await client.get(f"{self.api_path}/{other_measurement.id}", headers=self.headers)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    async def test_delete_blood_sugar_measurement_success(self) -> None:
+        measurement = await BloodSugarMeasurement.create(
+            user=self.test_user,
+            measure_type=BloodSugarMeasurementType.FASTING,
+            blood_glucose=100,
+            has_exercised=False,
+            has_medicated=False,
+            measured_at=datetime.now(UTC),
+        )
+        async with AsyncClient(transport=ASGITransport(app=app), base_url=self.base_url) as client:
+            response = await client.delete(f"{self.api_path}/{measurement.id}", headers=self.headers)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    async def test_delete_blood_sugar_measurement_failed_when_already_deleted(self) -> None:
+        measurement = await BloodSugarMeasurement.create(
+            user=self.test_user,
+            measure_type=BloodSugarMeasurementType.FASTING,
+            blood_glucose=100,
+            has_exercised=False,
+            has_medicated=False,
+            measured_at=datetime.now(UTC),
+        )
+        async with AsyncClient(transport=ASGITransport(app=app), base_url=self.base_url) as client:
+            # 여기서 1차 삭제
+            await client.delete(f"{self.api_path}/{measurement.id}", headers=self.headers)
+            # 2차 삭제요청
+            response = await client.delete(f"{self.api_path}/{measurement.id}", headers=self.headers)
+
+        # 이미 삭제된 측정 기록이므로 404 반환 여부 확인
+        assert response.status_code == status.HTTP_404_NOT_FOUND

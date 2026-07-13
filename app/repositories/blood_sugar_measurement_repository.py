@@ -32,3 +32,7 @@ class BloodSugarMeasurementRepository:
 
     async def get_by_id(self, user_id: UUID, measurement_id: UUID) -> BloodSugarMeasurement | None:
         return await BloodSugarMeasurement.get_or_none(user_id=user_id, id=measurement_id)
+
+    async def delete_by_id(self, user_id: UUID, measurement_id: UUID) -> int:
+        deleted_count = await BloodSugarMeasurement.filter(user_id=user_id, id=measurement_id).delete()
+        return deleted_count

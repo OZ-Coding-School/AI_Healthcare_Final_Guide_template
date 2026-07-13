@@ -58,3 +58,14 @@ async def get_blood_sugar_measurement(
         user_id=request_user.id, measurement_id=measurement_id
     )
     return BloodSugarMeasurementResponse.model_validate(measurement)
+
+
+@blood_sugar_measurement_router.delete("/{measurement_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_blood_sugar_measurement(
+    measurement_id: Annotated[UUID, Path(title="ID of the blood sugar measurement to delete")],
+    request_user: User = Depends(get_request_user),
+    blood_sugar_measurement_service: BloodSugarMeasurementService = Depends(get_blood_sugar_measurement_service),
+) -> None:
+    await blood_sugar_measurement_service.delete_blood_sugar_measurement_by_id(
+        user_id=request_user.id, measurement_id=measurement_id
+    )
