@@ -5,7 +5,14 @@ from typing import TYPE_CHECKING
 from tortoise import BaseDBAsyncClient, fields
 from uuid6 import uuid7
 
-from ..core.enums import BloodSugarMeasurementType, ExerciseType, Gender, HabitStatus
+from ..core.enums import (
+    BloodSugarMeasurementType,
+    ExerciseType,
+    Gender,
+    HabitStatus,
+    UrineGlucoseStatus,
+    UrineProteinStatus,
+)
 from ..core.utils.common import get_enum_max_length
 from .base import TimestampModel
 
@@ -101,3 +108,46 @@ class BloodSugarMeasurement(TimestampModel):
 
     class Meta:
         table = "blood_sugar_measurements"
+
+
+class AnnualHealthScreening(TimestampModel):
+    id = fields.UUIDField(primary_key=True, default=uuid7)
+    user: fields.ForeignKeyRelation["User"] = fields.ForeignKeyField(
+        "models.User", related_name="annual_health_screenings"
+    )
+    height = fields.DecimalField(max_digits=4, decimal_places=1, description="키(cm)")
+    weight = fields.DecimalField(max_digits=4, decimal_places=1, description="체중(kg)")
+    bmi = fields.DecimalField(max_digits=4, decimal_places=1, description="BMI")
+    waist_circumference = fields.DecimalField(max_digits=4, decimal_places=1, description="허리둘레(cm)")
+    sbp = fields.SmallIntField(description="수축기 혈압(mmHg)")
+    dbp = fields.SmallIntField(description="이완기 혈압(mmHg)")
+    pulse = fields.SmallIntField(description="맥박(분당 횟수)")
+    fbs = fields.SmallIntField(description="공복혈당(mg/dL)")
+    hba1c = fields.DecimalField(max_digits=3, decimal_places=1, description="당화혈색소(HbA1c, %)")
+    triglyceride = fields.SmallIntField(description="혈액 속 중성지방(mg/dL)")
+    ldl = fields.SmallIntField(description="LDL(저밀도 지단백) 콜레스테롤(mg/dL)")
+    hdl = fields.SmallIntField(description="HDL(고밀도 지단백) 콜레스테롤(mg/dL)")
+    total_cholesterol = fields.SmallIntField(description="총콜레스테롤(mg/dL)")
+    ast = fields.SmallIntField(description="아스파르테이트 아미노전이효소(AST)(IU/L)")
+    alt = fields.SmallIntField(description="알라닌 아미노전이효소(ALT)(IU/L)")
+    gamma_gtp = fields.SmallIntField(description="γ-GTP(IU/L)")
+    egfr = fields.SmallIntField(description="추정 사구체여과율(eGFR), 신장 기능을 평가하는 지표(mL/min/1.73㎡)")
+    creatinine = fields.DecimalField(max_digits=3, decimal_places=2, description="혈중 크레아티닌(mg/dL)")
+    urine_protein = fields.CharEnumField(
+        enum_type=UrineProteinStatus,
+        max_length=get_enum_max_length(UrineProteinStatus),
+        description="요단백 수치 검사 결과",
+    )
+    urine_glucose = fields.CharEnumField(
+        enum_type=UrineGlucoseStatus,
+        max_length=get_enum_max_length(UrineGlucoseStatus),
+        description="요당 수치 검사 결과",
+    )
+    family_history_diabetes = fields.BooleanField(description="직계 가족의 당뇨병 병력 여부")
+    family_history_hypertension = fields.BooleanField(description="직계 가족의 고혈압 병력 여부")
+
+    screening_at = fields.DateField(description="검진 날짜")
+    is_fasting = fields.BooleanField(description="공복 검사 여부")
+
+    class Meta:
+        table = "annual_health_screenings"

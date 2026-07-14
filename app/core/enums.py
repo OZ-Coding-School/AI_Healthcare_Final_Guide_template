@@ -62,3 +62,73 @@ class WithdrawalReason(StrEnum):
     PRIVACY_CONCERN = "PRIVACY_CONCERN"  # 개인정보 보호
     TOO_MANY_NOTIFICATIONS = "TOO_MANY_NOTIFICATIONS"  # 알림이 너무 많음
     OTHER = "OTHER"  # 기타
+
+
+class UrineProteinStatus(StrEnum):
+    NEGATIVE = "-"
+    TRACE = "±"
+    POSITIVE_1 = "1+"
+    POSITIVE_2 = "2+"
+    POSITIVE_3 = "3+"
+    POSITIVE_4 = "4+"
+
+    @property
+    def description(self) -> str:
+        """한글 명칭"""
+        mapping = {
+            UrineProteinStatus.NEGATIVE: "음성",
+            UrineProteinStatus.TRACE: "약양성(흔적)",
+            UrineProteinStatus.POSITIVE_1: "양성(1+)",
+            UrineProteinStatus.POSITIVE_2: "양성(2+)",
+            UrineProteinStatus.POSITIVE_3: "양성(3+)",
+            UrineProteinStatus.POSITIVE_4: "양성(4+)",
+        }
+        return mapping[self]
+
+    @property
+    def status_message(self) -> str:
+        """임상적 상태 메시지"""
+        mapping = {
+            UrineProteinStatus.NEGATIVE: "정상 상태",
+            UrineProteinStatus.TRACE: "추적 관찰 필요 단계",
+            UrineProteinStatus.POSITIVE_1: "단백뇨 의심 단계",
+            UrineProteinStatus.POSITIVE_2: "정밀검사 필요 단계",
+            UrineProteinStatus.POSITIVE_3: "신장 질환 가능성이 높은 단계",
+            UrineProteinStatus.POSITIVE_4: "심각한 신장 손상 위험 단계",
+        }
+        return mapping[self]
+
+
+class UrineGlucoseStatus(StrEnum):
+    NEGATIVE = "-"
+    TRACE = "±"
+    POSITIVE_1 = "1+"
+    POSITIVE_2 = "2+"
+    POSITIVE_3 = "3+"
+    POSITIVE_4 = "4+"
+
+    @property
+    def description(self) -> str:
+        """한글 명칭"""
+        mapping = {
+            UrineGlucoseStatus.NEGATIVE: "음성",
+            UrineGlucoseStatus.TRACE: "약양성(흔적)",
+            UrineGlucoseStatus.POSITIVE_1: "양성(1+)",
+            UrineGlucoseStatus.POSITIVE_2: "양성(2+)",
+            UrineGlucoseStatus.POSITIVE_3: "양성(3+)",
+            UrineGlucoseStatus.POSITIVE_4: "양성(4+)",
+        }
+        return mapping[self]
+
+    @property
+    def status(self) -> str:
+        """임상적 상태 메시지"""
+        mapping = {
+            UrineGlucoseStatus.NEGATIVE: "정상 (소변에 당이 없음)",
+            UrineGlucoseStatus.TRACE: "추적 관찰 필요 (일시적 당뇨 가능성)",
+            UrineGlucoseStatus.POSITIVE_1: "정밀 검사 필요 (당뇨 의심 수치)",
+            UrineGlucoseStatus.POSITIVE_2: "고혈당 의심 (추가 혈당 검사 필요)",
+            UrineGlucoseStatus.POSITIVE_3: "당뇨병 가능성 매우 높음",
+            UrineGlucoseStatus.POSITIVE_4: "중증 고혈당 및 신장 여과 기능 이상",
+        }
+        return mapping[self]
