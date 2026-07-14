@@ -23,11 +23,10 @@ class AnnualHealthScreeningService:
             raise HTTPException(status_code=404, detail="Annual Health Screening Not Found.")
         return screening
 
-    async def delete_by_id(self, user_id: UUID, screening_id: UUID) -> int:
-        deleted_count = await self.repo.get_by_id(user_id, screening_id)
+    async def delete_by_id(self, user_id: UUID, screening_id: UUID) -> None:
+        deleted_count = await self.repo.delete_by_id(user_id, screening_id)
         if deleted_count == 0:
             raise HTTPException(status_code=404, detail="Annual Health Screening Not Found.")
-        return await self.repo.delete_by_id(user_id, screening_id)
 
 
 def get_annual_health_screening_service(
