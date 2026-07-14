@@ -38,12 +38,13 @@ class TestBloodSugarMeasurementAPI(TestCase):
 
     async def test_create_blood_sugar_measurement_success(self) -> None:
         measure_type = BloodSugarMeasurementType.AFTER_LUNCH
+        exercise_type = ExerciseType.CARDIO
         payload = {
             "measure_type": measure_type,
             "blood_glucose": 120,
             "minutes_since_meal": 60,
             "has_exercised": True,
-            "exercise_type": ExerciseType.CARDIO,
+            "exercise_type": exercise_type,
             "exercise_minutes": 30,
             "minutes_since_exercise": 10,
             "has_medicated": False,
@@ -60,7 +61,7 @@ class TestBloodSugarMeasurementAPI(TestCase):
         assert data["measure_type"] == measure_type.label
         assert data["minutes_since_meal"] == payload["minutes_since_meal"]
         assert data["has_exercised"] is True
-        assert data["exercise_type"] == payload["exercise_type"]
+        assert data["exercise_type"] == exercise_type.label
 
     async def test_create_blood_sugar_measurement_normalization_when_has_exercised_is_false(self) -> None:
         # has_exercised가 False인데 운동 관련 필드가 있는 경우 (스키마에서 None으로 정규화되어야 함)

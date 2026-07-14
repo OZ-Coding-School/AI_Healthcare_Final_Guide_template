@@ -82,6 +82,12 @@ class BloodSugarMeasurementResponse(BloodSugarMeasurementListResponse):
         None, min_length=0, max_length=500, description="혈당 측정 시 참고메모(식사, 운동, 복약 관련)"
     )
 
+    @field_serializer("exercise_type")
+    def serialize_exercise_type(self, value: ExerciseType | None) -> str | None:
+        if value is None:
+            return None
+        return value.label
+
 
 class BloodSugarMeasurementListFilter(BaseModel):
     start_date: Annotated[date | None, Field(ge=date(2000, 1, 1))] = None
