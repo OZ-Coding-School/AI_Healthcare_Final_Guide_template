@@ -37,8 +37,9 @@ class TestBloodSugarMeasurementAPI(TestCase):
         return {"Authorization": f"Bearer {token_pair['access_token']}"}
 
     async def test_create_blood_sugar_measurement_success(self) -> None:
+        measure_type = BloodSugarMeasurementType.AFTER_LUNCH
         payload = {
-            "measure_type": BloodSugarMeasurementType.AFTER_LUNCH,
+            "measure_type": measure_type,
             "blood_glucose": 120,
             "minutes_since_meal": 60,
             "has_exercised": True,
@@ -56,7 +57,7 @@ class TestBloodSugarMeasurementAPI(TestCase):
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
         assert data["blood_glucose"] == payload["blood_glucose"]
-        assert data["measure_type"] == payload["measure_type"]
+        assert data["measure_type"] == measure_type.label
         assert data["minutes_since_meal"] == payload["minutes_since_meal"]
         assert data["has_exercised"] is True
         assert data["exercise_type"] == payload["exercise_type"]
@@ -208,9 +209,9 @@ class TestBloodSugarMeasurementAPI(TestCase):
         assert excluded_measurement not in data  # 필터링 되었는지 확인
         assert data[0]["measured_at"] < data[1]["measured_at"]  # measured_at 정렬 확인
         assert (
-            data[0]["measure_type"] == BloodSugarMeasurementType.AFTER_BREAKFAST.value
+            data[0]["measure_type"] == BloodSugarMeasurementType.AFTER_BREAKFAST.label
         )  # 정렬된 순서에 따라 올바른값을 가지고 있는지 확인
-        assert data[1]["measure_type"] == BloodSugarMeasurementType.BEFORE_LUNCH.value
+        assert data[1]["measure_type"] == BloodSugarMeasurementType.BEFORE_LUNCH.label
 
     async def test_get_blood_sugar_measurement_by_id_success(self) -> None:
         measurement = await BloodSugarMeasurement.create(
