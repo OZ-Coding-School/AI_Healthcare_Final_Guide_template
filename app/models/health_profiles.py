@@ -115,6 +115,7 @@ class AnnualHealthScreening(TimestampModel):
     user: fields.ForeignKeyRelation["User"] = fields.ForeignKeyField(
         "models.User", related_name="annual_health_screenings"
     )
+    title = fields.CharField(max_length=50, description="검진 제목(자동생성, ex. 2023년 1월 20일 건강검진)")
     height = fields.DecimalField(max_digits=4, decimal_places=1, description="키(cm)")
     weight = fields.DecimalField(max_digits=4, decimal_places=1, description="체중(kg)")
     bmi = fields.DecimalField(max_digits=4, decimal_places=1, description="BMI")
@@ -151,3 +152,20 @@ class AnnualHealthScreening(TimestampModel):
 
     class Meta:
         table = "annual_health_screenings"
+
+    async def save(
+        self,
+        using_db: BaseDBAsyncClient | None = None,
+        update_fields: Iterable[str] | None = None,
+        force_create: bool = False,
+        force_update: bool = False,
+    ) -> None:
+        if self.title is None and self.screening_at:
+            self.title = f"{self.screening_at.strftime('%Y년 %m월 %d일')} 건강검진"
+
+        return await super().save(
+            using_db=using_db,
+            update_fields=update_fields,
+            force_create=force_create,
+            force_update=force_update,
+        )
