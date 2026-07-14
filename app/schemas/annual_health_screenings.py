@@ -82,4 +82,4 @@ class AnnualHealthScreeningResponse(AnnualHealthScreeningListResponse):
 
     @field_serializer("urine_protein", "urine_glucose")
     def _serialize_urine_related_fields(self, value: UrineProteinStatus | UrineGlucoseStatus) -> str:
-        return value.description
+        return value.label

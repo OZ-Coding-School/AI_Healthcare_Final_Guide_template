@@ -2,24 +2,25 @@ from datetime import date, datetime
 from typing import Annotated, Self
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, PositiveInt, field_serializer, model_validator
 
 from app.core.enums import BloodSugarMeasurementType, ExerciseType
+from app.core.utils.date import normalize_datetime
 from app.schemas.base import BaseSerializerModel
 from app.schemas.mixins import ConditionalFieldValidationMixin
 
 
 class BloodSugarMeasurementCreateRequest(BaseModel, ConditionalFieldValidationMixin):
     measure_type: BloodSugarMeasurementType
-    blood_glucose: int
-    minutes_since_meal: int | None = None
+    blood_glucose: PositiveInt
+    minutes_since_meal: PositiveInt | None = None
     has_exercised: bool
     exercise_type: ExerciseType | None = None
-    exercise_minutes: int | None = None
-    minutes_since_exercise: int | None = None
+    exercise_minutes: PositiveInt | None = None
+    minutes_since_exercise: PositiveInt | None = None
     has_medicated: bool
     medicine_name: str | None = None
-    minutes_since_medication: int | None = None
+    minutes_since_medication: PositiveInt | None = None
     memo: str | None = Field(
         None, min_length=0, max_length=1000, description="혈당 측정 시 참고메모(식사, 운동, 복약 관련)"
     )
@@ -52,30 +53,34 @@ class BloodSugarMeasurementCreateRequest(BaseModel, ConditionalFieldValidationMi
         return self
 
 
-class BloodSugarMeasurementResponse(BaseSerializerModel):
-    id: UUID
-    measure_type: BloodSugarMeasurementType
-    blood_glucose: int
-    minutes_since_meal: int | None = None
-    has_exercised: bool
-    exercise_type: ExerciseType | None = None
-    exercise_minutes: int | None = None
-    minutes_since_exercise: int | None = None
-    has_medicated: bool
-    medicine_name: str | None = None
-    minutes_since_medication: int | None = None
-    memo: str | None = Field(
-        None, min_length=0, max_length=500, description="혈당 측정 시 참고메모(식사, 운동, 복약 관련)"
-    )
-    measured_at: datetime
-    created_at: datetime
-
-
 class BloodSugarMeasurementListResponse(BaseSerializerModel):
     id: UUID
     measure_type: BloodSugarMeasurementType
     measured_at: datetime
     created_at: datetime
+
+    @field_serializer("measured_at", "created_at")
+    def serialize_datetime_fields(self, value: datetime) -> str:
+        return normalize_datetime(value)
+
+    @field_serializer("measure_type")
+    def serialize_measure_type(self, value: BloodSugarMeasurementType) -> str:
+        return value.label
+
+
+class BloodSugarMeasurementResponse(BloodSugarMeasurementListResponse):
+    blood_glucose: PositiveInt
+    minutes_since_meal: PositiveInt | None = None
+    has_exercised: bool
+    exercise_type: ExerciseType | None = None
+    exercise_minutes: PositiveInt | None = None
+    minutes_since_exercise: PositiveInt | None = None
+    has_medicated: bool
+    medicine_name: str | None = None
+    minutes_since_medication: PositiveInt | None = None
+    memo: str | None = Field(
+        None, min_length=0, max_length=500, description="혈당 측정 시 참고메모(식사, 운동, 복약 관련)"
+    )
 
 
 class BloodSugarMeasurementListFilter(BaseModel):
