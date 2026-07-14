@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, PositiveInt, field_serializer
 
 from app.core.enums import UrineGlucoseStatus, UrineProteinStatus
 from app.core.utils.date import normalize_date, normalize_datetime
@@ -21,19 +21,19 @@ class AnnualHealthScreeningCreateRequest(BaseModel):
     weight: Weight
     bmi: BMI
     waist_circumference: WaistCircumference
-    sbp: int
-    dbp: int
-    pulse: int
-    fbs: int
+    sbp: PositiveInt
+    dbp: PositiveInt
+    pulse: PositiveInt
+    fbs: PositiveInt
     hba1c: HbA1c
-    triglyceride: int
-    ldl: int
-    hdl: int
-    total_cholesterol: int
-    ast: int
-    alt: int
-    gamma_gtp: int
-    egfr: int
+    triglyceride: PositiveInt
+    ldl: PositiveInt
+    hdl: PositiveInt
+    total_cholesterol: PositiveInt
+    ast: PositiveInt
+    alt: PositiveInt
+    gamma_gtp: PositiveInt
+    egfr: PositiveInt
     creatinine: Creatinine
     urine_protein: UrineProteinStatus
     urine_glucose: UrineGlucoseStatus
@@ -61,19 +61,19 @@ class AnnualHealthScreeningResponse(AnnualHealthScreeningListResponse):
     weight: Weight
     bmi: BMI
     waist_circumference: WaistCircumference
-    sbp: int
-    dbp: int
-    pulse: int
-    fbs: int
+    sbp: PositiveInt
+    dbp: PositiveInt
+    pulse: PositiveInt
+    fbs: PositiveInt
     hba1c: HbA1c
-    triglyceride: int
-    ldl: int
-    hdl: int
-    total_cholesterol: int
-    ast: int
-    alt: int
-    gamma_gtp: int
-    egfr: int
+    triglyceride: PositiveInt
+    ldl: PositiveInt
+    hdl: PositiveInt
+    total_cholesterol: PositiveInt
+    ast: PositiveInt
+    alt: PositiveInt
+    gamma_gtp: PositiveInt
+    egfr: PositiveInt
     creatinine: Creatinine
     urine_protein: UrineProteinStatus
     urine_glucose: UrineGlucoseStatus
