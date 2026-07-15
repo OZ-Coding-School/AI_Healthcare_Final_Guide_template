@@ -16,7 +16,9 @@ repos:
     rev: v0.15.20
     hooks:
       - id: ruff-format
+        files: ^apps/backend/
       - id: ruff
+        files: ^apps/backend/
         args: [ --fix ]
 
   # MyPy (정적 타입 검사)
@@ -24,6 +26,7 @@ repos:
     rev: v1.14.0
     hooks:
       - id: mypy
+        files: ^apps/backend/
         # FastAPI와 Pydantic 검사를 위한 의존성 주입
         additional_dependencies:
           - pydantic

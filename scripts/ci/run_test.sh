@@ -5,16 +5,15 @@ COLOR_BLUE=$(tput setaf 4)
 COLOR_RED=$(tput setaf 1)
 COLOR_NC=$(tput sgr0)
 
-cd "$(dirname "$0")/../.."
-
-source .env
+cd "$(dirname "$0")/../../apps/backend"
 
 echo "${COLOR_BLUE}Find Tests${COLOR_NC}"
 
 HAS_TESTS=false
-export DB_HOST=localhost
+DB_HOST=localhost
+REDIS_HOST=localhost
 
-if [ -d "./app/tests" ] && find ./app/tests -name 'test_*.py' -print -quit | read ; then
+if [ -d "./tests" ] && find ./tests -name 'test_*.py' -print -quit | read ; then
   HAS_TESTS=true
 fi
 
@@ -23,7 +22,7 @@ echo "Has tests: $HAS_TESTS"
 if [ "$HAS_TESTS" = true ]; then
   echo "${COLOR_BLUE}Run Pytest with Coverage${COLOR_NC}"
 
-  if ! uv run coverage run -m pytest app; then
+  if ! uv run coverage run -m pytest tests/; then
     echo ""
     echo "${COLOR_RED}✖ Pytest failed.${COLOR_NC}"
     echo "${COLOR_RED}→ Fix the test failures above and re-run.${COLOR_NC}"

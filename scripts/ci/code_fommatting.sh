@@ -5,9 +5,10 @@ COLOR_BLUE=$(tput setaf 4)
 COLOR_RED=$(tput setaf 1)
 COLOR_NC=$(tput sgr0)
 
-cd "$(dirname "$0")/../.."
+cd "$(dirname "$0")/../../apps/backend"
 
 echo "${COLOR_BLUE}Start Ruff Auto Fix${COLOR_NC}"
+uv run ruff format . || true
 uv run ruff check . --fix || true
 echo "${COLOR_GREEN}Auto-fix Done${COLOR_NC}"
 
