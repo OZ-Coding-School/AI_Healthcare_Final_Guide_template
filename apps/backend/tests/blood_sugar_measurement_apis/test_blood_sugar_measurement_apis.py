@@ -7,9 +7,9 @@ from uuid6 import uuid7
 
 from app.core.enums import BloodSugarMeasurementType, ExerciseType
 from app.core.utils.jwt.provider import JWTProvider
-from app.main import app
 from app.models.health_profiles import BloodSugarMeasurement
 from app.models.user_models import User
+from main import app
 
 
 class TestBloodSugarMeasurementAPI(TestCase):

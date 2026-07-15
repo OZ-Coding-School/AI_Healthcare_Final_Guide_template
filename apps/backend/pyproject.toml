@@ -53,7 +53,7 @@ explicit = true
 
 [tool.aerich]
 tortoise_orm = "app.core.db.databases.TORTOISE_ORM"
-location = "./app/core/db/migrations"
+location = "./migrations"
 src_folder = "./."
 
 [tool.pytest.ini_options]
@@ -86,7 +86,7 @@ ignore = [
 # 특정 파일에서 무시할 규칙들
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
-"db/migrations/*" = ["ALL"]
+"migrations/*" = ["ALL"]
 
 [tool.ruff.format]
 # 포매터 설정

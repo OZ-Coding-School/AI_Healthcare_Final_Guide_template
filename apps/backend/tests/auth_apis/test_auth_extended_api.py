@@ -5,7 +5,7 @@ from starlette import status
 from tortoise.contrib.test import TestCase
 
 from app.core.enums import WithdrawalReason
-from app.main import app
+from main import app
 
 
 class TestAuthExtendedAPI(TestCase):

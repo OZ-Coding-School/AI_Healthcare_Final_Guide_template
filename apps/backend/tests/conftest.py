@@ -13,7 +13,7 @@ from tortoise.contrib.test import finalizer, initializer
 from app.core import settings
 from app.core.db.databases import TORTOISE_APP_MODELS
 from app.core.utils.redis import get_redis
-from app.main import app
+from main import app
 
 TEST_BASE_URL = "http://test"
 TEST_DB_LABEL = "models"

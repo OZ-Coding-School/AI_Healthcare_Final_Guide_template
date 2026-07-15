@@ -4,9 +4,9 @@ from tortoise.contrib.test import TestCase
 
 from app.core.enums import HabitStatus
 from app.core.utils.jwt.provider import JWTProvider
-from app.main import app
 from app.models.health_profiles import MonthlyHealthSurvey
 from app.models.user_models import User
+from main import app
 
 
 class TestHealthSurveyAPI(TestCase):

@@ -21,7 +21,7 @@ class Config(BaseSettings):
     ENV: Env = Env.LOCAL
     SECRET_KEY: str = f"default-secret-key{uuid.uuid4().hex}"
     TIMEZONE: zoneinfo.ZoneInfo = field(default_factory=lambda: zoneinfo.ZoneInfo("Asia/Seoul"))
-    BASE_DIR: Path = Path(__file__).resolve().parent.parent
+    BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
     TEMPLATE_DIR: Path = BASE_DIR / "templates"
     MEDIA_DIR: Path = BASE_DIR / "media"
 

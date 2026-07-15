@@ -1,7 +1,7 @@
 import logging
 
 from app.core.config import Config
-from app.core.utils.logger import configure_logger
+from app.core.logging import configure_logger
 
 
 def get_config() -> Config:
