@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 
 from app.apis.v1 import v1_routers
+from app.core import settings
 from app.core.db.databases import close_tortoise, initialize_tortoise
 from app.core.exceptions.exception_handler import initialize_exception_handlers
 from app.core.utils.redis import close_redis_pool, initialize_redis_pool
@@ -28,5 +30,19 @@ app = FastAPI(
     redoc_url="/api/redoc",
     openapi_url="/api/openapi.json",
 )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ALLOW_ORIGINS,
+    allow_credentials=True,
+    allow_methods=[
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "OPTIONS",
+        "PATCH",
+        "HEAD",
+    ],
+    allow_headers=["*"],
+)
 app.include_router(v1_routers)
