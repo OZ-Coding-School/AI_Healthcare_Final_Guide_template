@@ -33,3 +33,19 @@ repos:
           - fastapi
           - types-requests  # HTTP 클라이언트 테스트용 (선택)
           - types-redis
+
+  # Frontend Lint (ESLint) & Format (Prettier)
+  - repo: local
+    hooks:
+      - id: frontend-format
+        name: frontend-format
+        entry: bash -c "cd apps/frontend && npm run format"
+        language: system
+        files: ^apps/frontend/src/
+        pass_filenames: false
+      - id: frontend-lint
+        name: frontend-lint
+        entry: bash -c "cd apps/frontend && npm run lint"
+        language: system
+        files: ^apps/frontend/src/
+        pass_filenames: false
