@@ -3,11 +3,10 @@ from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_serializer, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from app.core import settings
 from app.core.enums import Gender
-from app.core.utils.date import normalize_datetime
 from app.schemas.base import BaseSerializerModel
 
 Height = Annotated[
@@ -54,7 +53,3 @@ class HealthProfileResponse(BaseSerializerModel):
     has_hypertension: bool
     created_at: datetime
     updated_at: datetime
-
-    @field_serializer("created_at", "updated_at")
-    def serialize_datetime_fields(self, value: datetime) -> str:
-        return normalize_datetime(value)

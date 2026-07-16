@@ -6,7 +6,6 @@ from uuid import UUID
 from pydantic import BaseModel, Field, PositiveInt, field_serializer
 
 from app.core.enums import UrineGlucoseStatus, UrineProteinStatus
-from app.core.utils.date import normalize_date, normalize_datetime
 from app.schemas.base import BaseSerializerModel
 from app.schemas.health_profiles import Height, Weight
 
@@ -48,12 +47,6 @@ class AnnualHealthScreeningListResponse(BaseSerializerModel):
     title: str
     screening_at: date
     created_at: datetime
-
-    @field_serializer("screening_at", "created_at")
-    def serialize_datetime_or_date(self, value: date | datetime) -> str:
-        if isinstance(value, datetime):
-            return normalize_datetime(value)
-        return normalize_date(value)
 
 
 class AnnualHealthScreeningResponse(AnnualHealthScreeningListResponse):
