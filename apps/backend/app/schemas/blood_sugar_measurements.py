@@ -5,7 +5,6 @@ from uuid import UUID
 from pydantic import BaseModel, Field, PositiveInt, field_serializer, model_validator
 
 from app.core.enums import BloodSugarMeasurementType, ExerciseType
-from app.core.utils.date import normalize_datetime
 from app.schemas.base import BaseSerializerModel
 from app.schemas.mixins import ConditionalFieldValidationMixin
 
@@ -58,10 +57,6 @@ class BloodSugarMeasurementListResponse(BaseSerializerModel):
     measure_type: BloodSugarMeasurementType
     measured_at: datetime
     created_at: datetime
-
-    @field_serializer("measured_at", "created_at")
-    def serialize_datetime_fields(self, value: datetime) -> str:
-        return normalize_datetime(value)
 
     @field_serializer("measure_type")
     def serialize_measure_type(self, value: BloodSugarMeasurementType) -> str:

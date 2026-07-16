@@ -5,7 +5,6 @@ from uuid import UUID
 from pydantic import BaseModel, Field, PositiveInt, field_serializer, model_validator
 
 from app.core.enums import HabitStatus
-from app.core.utils.date import normalize_datetime
 from app.schemas.base import BaseSerializerModel
 from app.schemas.mixins import ConditionalFieldValidationMixin
 
@@ -48,10 +47,6 @@ class MonthlyHealthSurveyListResponse(BaseSerializerModel):
     id: UUID
     title: str
     created_at: datetime
-
-    @field_serializer("created_at")
-    def serialize_datetime_fields(self, value: datetime) -> str:
-        return normalize_datetime(value)
 
 
 class MonthlyHealthSurveyResponse(MonthlyHealthSurveyListResponse):

@@ -2,10 +2,9 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_serializer
+from pydantic import BaseModel, EmailStr, Field
 
 from app.core.enums import WithdrawalReason
-from app.core.utils.date import normalize_datetime
 from app.core.validators import optional_after_validator, validate_phone_number
 from app.schemas.base import BaseSerializerModel
 
@@ -40,7 +39,3 @@ class UserInfoResponse(BaseSerializerModel):
     email: str
     phone_number: str
     created_at: datetime
-
-    @field_serializer("created_at")
-    def serialize_datetime_fields(self, value: datetime) -> str:
-        return normalize_datetime(value)
