@@ -53,10 +53,11 @@ services:
     image: ${DOCKER_USER}/${DOCKER_REPOSITORY}:app-${APP_VERSION}
     env_file: .env
     command: |
-      sh -c "uv run aerich upgrade && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      sh -c "uv run aerich upgrade && uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       # 로컬의 apps/backend 디렉토리를 컨테이너의 /backend 디렉터리에 마운트(수정사항 즉시 반영)
-      - ./apps/backend:/backend
+      - ./apps/backend/app:/backend/app
+      - ./apps/backend/main.py:/backend/main.py
       - static_volume:/backend/static
       - media_volume:/backend/media
       - templates_volume:/backend/templates

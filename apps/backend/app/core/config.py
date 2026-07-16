@@ -43,6 +43,7 @@ class Config(BaseSettings):
     REDIS_MAX_CONNECTION: int = 100
 
     COOKIE_DOMAIN: str = "localhost"
+    CORS_ALLOW_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
