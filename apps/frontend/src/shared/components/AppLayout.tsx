@@ -1,9 +1,24 @@
 import { useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router";
 import {
-  Heart, ClipboardList, UserCircle, CalendarDays, Microscope, Droplet,
-  Brain, FileText, Target, ChevronDown, LogOut, Menu, X, Bell, UserX, Settings,
-  LayoutDashboard, PanelLeftClose, PanelLeftOpen,
+  Heart,
+  ClipboardList,
+  UserCircle,
+  CalendarDays,
+  Microscope,
+  Droplet,
+  Brain,
+  FileText,
+  Target,
+  ChevronDown,
+  LogOut,
+  Menu,
+  Bell,
+  UserX,
+  Settings,
+  LayoutDashboard,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { getUser, logout, isAuthenticated } from "../api/auth";
 import { getHealthProfile, HealthProfile } from "../api/healthProfileApi";
@@ -12,7 +27,12 @@ const cn = (...cls: (string | boolean | undefined)[]) => cls.filter(Boolean).joi
 
 /* ── Avatar ── */
 function Avatar({ name, size = 36 }: { name: string; size?: number }) {
-  const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const initials = name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
   return (
     <div
       className="rounded-full flex items-center justify-center font-semibold text-white flex-shrink-0"
@@ -24,14 +44,24 @@ function Avatar({ name, size = 36 }: { name: string; size?: number }) {
 }
 
 /* ── Menu config ── */
-interface MenuItem { label: string; path: string; icon: React.ElementType }
-interface MenuGroup { id: string; label: string; icon: React.ElementType; items?: MenuItem[]; path?: string }
+interface MenuItem {
+  label: string;
+  path: string;
+  icon: React.ElementType;
+}
+interface MenuGroup {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  items?: MenuItem[];
+  path?: string;
+}
 
 function getMenuConfig(hasDiabetes: boolean): MenuGroup[] {
   const healthItems: MenuItem[] = [
-    { label: "건강 프로필",    path: "/app/health/profile",  icon: UserCircle },
-    { label: "월별 건강설문",  path: "/app/health/monthly",  icon: CalendarDays },
-    { label: "건강검진 기록",  path: "/app/health/checkup",  icon: Microscope },
+    { label: "건강 프로필", path: "/app/health/profile", icon: UserCircle },
+    { label: "월별 건강설문", path: "/app/health/monthly", icon: CalendarDays },
+    { label: "건강검진 기록", path: "/app/health/checkup", icon: Microscope },
   ];
 
   // 당뇨병 환자일 경우에만 혈당 측정 기록 메뉴 추가
@@ -58,16 +88,14 @@ function getMenuConfig(hasDiabetes: boolean): MenuGroup[] {
       icon: Brain,
       items: [
         { label: "AI 위험도 분석", path: "/app/ai/analysis", icon: Brain },
-        { label: "AI 건강리포트",  path: "/app/ai/report",   icon: FileText },
+        { label: "AI 건강리포트", path: "/app/ai/report", icon: FileText },
       ],
     },
     {
       id: "challenge",
       label: "건강 챌린지",
       icon: Target,
-      items: [
-        { label: "건강 챌린지", path: "/app/challenge", icon: Target },
-      ],
+      items: [{ label: "건강 챌린지", path: "/app/challenge", icon: Target }],
     },
     {
       id: "mypage",
@@ -79,22 +107,24 @@ function getMenuConfig(hasDiabetes: boolean): MenuGroup[] {
       id: "settings",
       label: "설정",
       icon: Settings,
-      items: [
-        { label: "알림 설정", path: "/app/settings/notifications", icon: Bell },
-      ],
+      items: [{ label: "알림 설정", path: "/app/settings/notifications", icon: Bell }],
     },
   ];
 }
 
 /* ── Sidebar content ── */
-function SidebarContent({ onNavigate, collapsed, onToggleCollapse }: {
+function SidebarContent({
+  onNavigate,
+  collapsed,
+  onToggleCollapse,
+}: {
   onNavigate?: () => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }) {
-  const navigate   = useNavigate();
-  const location   = useLocation();
-  const user       = getUser();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const user = getUser();
   const displayName = user?.nickname || user?.email || "사용자";
 
   const [healthProfile, setHealthProfile] = useState<HealthProfile | null>(null);
@@ -141,7 +171,9 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse }: {
     return (
       <div className="flex flex-col h-full" style={{ backgroundColor: "#0B1628" }}>
         <div className="flex items-center justify-center h-full">
-          <div className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>로딩 중...</div>
+          <div className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
+            로딩 중...
+          </div>
         </div>
       </div>
     );
@@ -161,7 +193,10 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse }: {
         }}
       >
         {collapsed ? (
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#10B981" }}>
+          <div
+            className="w-9 h-9 rounded-lg flex items-center justify-center"
+            style={{ backgroundColor: "#10B981" }}
+          >
             <Heart size={17} className="text-white" />
           </div>
         ) : (
@@ -169,7 +204,10 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse }: {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
               <Heart size={15} className="text-white" />
             </div>
-            <span className="font-bold text-base text-white" style={{ fontFamily: "Oxanium, sans-serif", letterSpacing: "0.04em" }}>
+            <span
+              className="font-bold text-base text-white"
+              style={{ fontFamily: "Oxanium, sans-serif", letterSpacing: "0.04em" }}
+            >
               VitalAI
             </span>
           </div>
@@ -179,11 +217,19 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse }: {
       {/* User profile */}
       {!collapsed && (
         <div className="px-4 py-4 border-b" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
-          <div className="flex items-center gap-3 px-2 py-2.5 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
+          <div
+            className="flex items-center gap-3 px-2 py-2.5 rounded-xl"
+            style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+          >
             <Avatar name={displayName} size={36} />
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-white truncate">{user?.nickname || user?.name || "사용자"}</div>
-              <div className="text-xs truncate mt-0.5" style={{ color: "rgba(255,255,255,0.4)", fontFamily: "JetBrains Mono" }}>
+              <div className="text-sm font-semibold text-white truncate">
+                {user?.nickname || user?.name || "사용자"}
+              </div>
+              <div
+                className="text-xs truncate mt-0.5"
+                style={{ color: "rgba(255,255,255,0.4)", fontFamily: "JetBrains Mono" }}
+              >
                 {user?.email}
               </div>
             </div>
@@ -192,7 +238,10 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse }: {
       )}
 
       {collapsed && (
-        <div className="py-4 border-b flex items-center justify-center" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
+        <div
+          className="py-4 border-b flex items-center justify-center"
+          style={{ borderColor: "rgba(255,255,255,0.07)" }}
+        >
           <Avatar name={displayName} size={36} />
         </div>
       )}
@@ -224,7 +273,10 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse }: {
               >
                 {({ isActive }) => (
                   <>
-                    <GroupIcon size={17} style={{ color: isActive ? "#10B981" : "rgba(255,255,255,0.4)" }} />
+                    <GroupIcon
+                      size={17}
+                      style={{ color: isActive ? "#10B981" : "rgba(255,255,255,0.4)" }}
+                    />
                     {!collapsed && group.label}
                   </>
                 )}
@@ -233,7 +285,8 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse }: {
           }
 
           // Group with sub-items
-          const isGroupActive = group.items?.some((item) => location.pathname.startsWith(item.path)) ?? false;
+          const isGroupActive =
+            group.items?.some((item) => location.pathname.startsWith(item.path)) ?? false;
           const isOpen = open[group.id];
 
           // In collapsed mode, show only the icon for groups (no expansion)
@@ -283,18 +336,27 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse }: {
                 )}
                 style={{ color: isGroupActive ? "#fff" : "rgba(255,255,255,0.55)" }}
               >
-                <GroupIcon size={17} style={{ color: isGroupActive ? "#10B981" : "rgba(255,255,255,0.4)" }} />
+                <GroupIcon
+                  size={17}
+                  style={{ color: isGroupActive ? "#10B981" : "rgba(255,255,255,0.4)" }}
+                />
                 <span className="flex-1 text-left">{group.label}</span>
                 <ChevronDown
                   size={14}
                   className="transition-transform duration-200"
-                  style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", color: "rgba(255,255,255,0.3)" }}
+                  style={{
+                    transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    color: "rgba(255,255,255,0.3)",
+                  }}
                 />
               </button>
 
               {/* Sub items */}
               {isOpen && (
-                <div className="ml-3 pl-4 mt-0.5 mb-1 flex flex-col gap-0.5" style={{ borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
+                <div
+                  className="ml-3 pl-4 mt-0.5 mb-1 flex flex-col gap-0.5"
+                  style={{ borderLeft: "1px solid rgba(255,255,255,0.08)" }}
+                >
                   {group.items?.map((item) => {
                     const ItemIcon = item.icon;
                     return (
@@ -315,7 +377,10 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse }: {
                       >
                         {({ isActive }) => (
                           <>
-                            <ItemIcon size={15} style={{ color: isActive ? "#10B981" : "rgba(255,255,255,0.35)" }} />
+                            <ItemIcon
+                              size={15}
+                              style={{ color: isActive ? "#10B981" : "rgba(255,255,255,0.35)" }}
+                            />
                             {item.label}
                           </>
                         )}
@@ -330,7 +395,10 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse }: {
       </nav>
 
       {/* Collapse Toggle & Logout */}
-      <div className="px-3 py-4 border-t flex flex-col gap-1" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
+      <div
+        className="px-3 py-4 border-t flex flex-col gap-1"
+        style={{ borderColor: "rgba(255,255,255,0.07)" }}
+      >
         {onToggleCollapse && (
           <button
             onClick={onToggleCollapse}
@@ -341,7 +409,14 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse }: {
             )}
             style={{ color: "rgba(255,255,255,0.4)" }}
           >
-            {collapsed ? <PanelLeftOpen size={17} /> : <><PanelLeftClose size={16} />메뉴 접기</>}
+            {collapsed ? (
+              <PanelLeftOpen size={17} />
+            ) : (
+              <>
+                <PanelLeftClose size={16} />
+                메뉴 접기
+              </>
+            )}
           </button>
         )}
 
@@ -378,7 +453,7 @@ function SidebarContent({ onNavigate, collapsed, onToggleCollapse }: {
 
 /* ── Main layout ── */
 export default function AppLayout() {
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const user = getUser();
@@ -386,14 +461,17 @@ export default function AppLayout() {
   // Auth guard
   useEffect(() => {
     if (!isAuthenticated()) navigate("/login", { replace: true });
-  }, []);
+  }, [navigate]);
 
   if (!isAuthenticated()) return null;
 
   const displayName = user?.nickname || user?.name || "사용자";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background" style={{ fontFamily: "Outfit, sans-serif" }}>
+    <div
+      className="flex h-screen overflow-hidden bg-background"
+      style={{ fontFamily: "Outfit, sans-serif" }}
+    >
       {/* Desktop sidebar */}
       <aside
         className="hidden lg:flex flex-col flex-shrink-0 h-full overflow-hidden"
@@ -431,10 +509,20 @@ export default function AppLayout() {
             {/* Show branding when sidebar is collapsed */}
             {collapsed && (
               <div className="hidden lg:flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#10B981" }}>
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: "#10B981" }}
+                >
                   <Heart size={13} className="text-white" />
                 </div>
-                <span className="font-bold text-base" style={{ fontFamily: "Oxanium, sans-serif", letterSpacing: "0.04em", color: "#0B1628" }}>
+                <span
+                  className="font-bold text-base"
+                  style={{
+                    fontFamily: "Oxanium, sans-serif",
+                    letterSpacing: "0.04em",
+                    color: "#0B1628",
+                  }}
+                >
                   VitalAI
                 </span>
               </div>
@@ -445,11 +533,16 @@ export default function AppLayout() {
           <div className="flex items-center gap-3">
             <button className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors relative">
               <Bell size={17} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#10B981" }} />
+              <span
+                className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: "#10B981" }}
+              />
             </button>
             <div className="flex items-center gap-2.5">
               <Avatar name={displayName} size={30} />
-              <span className="hidden sm:block text-sm font-medium text-foreground">{displayName}</span>
+              <span className="hidden sm:block text-sm font-medium text-foreground">
+                {displayName}
+              </span>
             </div>
           </div>
         </header>

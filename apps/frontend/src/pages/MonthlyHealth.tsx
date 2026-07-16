@@ -1,7 +1,17 @@
 import { useState, useEffect } from "react";
 import {
-  Plus, CalendarDays, ChevronRight, Loader2, AlertCircle, CheckCircle,
-  X, Cigarette, Wine, Heart, Activity, TrendingUp, Eye,
+  Plus,
+  CalendarDays,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  X,
+  Cigarette,
+  Wine,
+  Heart,
+  Activity,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -26,8 +36,18 @@ const HABIT_OPTIONS: { value: HabitStatus; label: string }[] = [
 ];
 
 /* ── Input Field ── */
-function Field({ label, required, error, hint, children }: {
-  label: string; required?: boolean; error?: string; hint?: string; children: React.ReactNode;
+function Field({
+  label,
+  required,
+  error,
+  hint,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
+  children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -38,7 +58,8 @@ function Field({ label, required, error, hint, children }: {
       {children}
       {error && (
         <span className="text-xs flex items-center gap-1 text-red-500">
-          <AlertCircle size={11} />{error}
+          <AlertCircle size={11} />
+          {error}
         </span>
       )}
       {hint && !error && <span className="text-xs text-muted-foreground">{hint}</span>}
@@ -52,10 +73,7 @@ const INPUT = cn(
 );
 
 /* ── Survey Form ── */
-function SurveyForm({ onCancel, onSuccess }: {
-  onCancel: () => void;
-  onSuccess: () => void;
-}) {
+function SurveyForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: () => void }) {
   const [form, setForm] = useState<CreateHealthSurveyBody>({
     smoking_status: "NEVER",
     drinking_status: "NEVER",
@@ -119,7 +137,8 @@ function SurveyForm({ onCancel, onSuccess }: {
       }
       if (form.drinking_status === "CURRENT") {
         if (form.drinking_fr_per_week) payload.drinking_fr_per_week = form.drinking_fr_per_week;
-        if (form.drinking_amount_per_session) payload.drinking_amount_per_session = form.drinking_amount_per_session;
+        if (form.drinking_amount_per_session)
+          payload.drinking_amount_per_session = form.drinking_amount_per_session;
       }
       if (form.pulse && form.pulse > 0) {
         payload.pulse = form.pulse;
@@ -149,9 +168,16 @@ function SurveyForm({ onCancel, onSuccess }: {
       </h3>
 
       {apiError && (
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm mb-5"
-          style={{ backgroundColor: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", color: "#DC2626" }}>
-          <AlertCircle size={15} className="flex-shrink-0" />{apiError}
+        <div
+          className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm mb-5"
+          style={{
+            backgroundColor: "rgba(239,68,68,0.06)",
+            border: "1px solid rgba(239,68,68,0.2)",
+            color: "#DC2626",
+          }}
+        >
+          <AlertCircle size={15} className="flex-shrink-0" />
+          {apiError}
         </div>
       )}
 
@@ -163,7 +189,9 @@ function SurveyForm({ onCancel, onSuccess }: {
         </div>
         <div className="flex gap-2 mb-3">
           {HABIT_OPTIONS.map((opt) => (
-            <button key={opt.value} type="button"
+            <button
+              key={opt.value}
+              type="button"
               onClick={() => {
                 set("smoking_status")(opt.value);
                 if (opt.value !== "CURRENT") set("smoking_fr_per_day")(undefined);
@@ -174,18 +202,33 @@ function SurveyForm({ onCancel, onSuccess }: {
                   ? "border-primary text-white"
                   : "border-border text-foreground hover:border-primary/50"
               )}
-              style={form.smoking_status === opt.value ? { backgroundColor: "#0D3B6E" } : {}}>
+              style={form.smoking_status === opt.value ? { backgroundColor: "#0D3B6E" } : {}}
+            >
               {opt.label}
             </button>
           ))}
         </div>
         {form.smoking_status === "CURRENT" && (
-          <Field label="하루 흡연량 (개비)" required error={errors.smoking_fr_per_day} hint="예: 10">
-            <input type="number" min="1" placeholder="10"
+          <Field
+            label="하루 흡연량 (개비)"
+            required
+            error={errors.smoking_fr_per_day}
+            hint="예: 10"
+          >
+            <input
+              type="number"
+              min="1"
+              placeholder="10"
               value={form.smoking_fr_per_day ?? ""}
-              onChange={(e) => set("smoking_fr_per_day")(e.target.value ? Number(e.target.value) : undefined)}
+              onChange={(e) =>
+                set("smoking_fr_per_day")(e.target.value ? Number(e.target.value) : undefined)
+              }
               className={INPUT}
-              style={{ borderColor: errors.smoking_fr_per_day ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.smoking_fr_per_day ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
         )}
       </div>
@@ -198,7 +241,9 @@ function SurveyForm({ onCancel, onSuccess }: {
         </div>
         <div className="flex gap-2 mb-3">
           {HABIT_OPTIONS.map((opt) => (
-            <button key={opt.value} type="button"
+            <button
+              key={opt.value}
+              type="button"
               onClick={() => {
                 set("drinking_status")(opt.value);
                 if (opt.value !== "CURRENT") {
@@ -212,7 +257,8 @@ function SurveyForm({ onCancel, onSuccess }: {
                   ? "border-primary text-white"
                   : "border-border text-foreground hover:border-primary/50"
               )}
-              style={form.drinking_status === opt.value ? { backgroundColor: "#0D3B6E" } : {}}>
+              style={form.drinking_status === opt.value ? { backgroundColor: "#0D3B6E" } : {}}
+            >
               {opt.label}
             </button>
           ))}
@@ -220,18 +266,45 @@ function SurveyForm({ onCancel, onSuccess }: {
         {form.drinking_status === "CURRENT" && (
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label="주당 음주 횟수" required error={errors.drinking_fr_per_week} hint="예: 2">
-              <input type="number" min="1" placeholder="2"
+              <input
+                type="number"
+                min="1"
+                placeholder="2"
                 value={form.drinking_fr_per_week ?? ""}
-                onChange={(e) => set("drinking_fr_per_week")(e.target.value ? Number(e.target.value) : undefined)}
+                onChange={(e) =>
+                  set("drinking_fr_per_week")(e.target.value ? Number(e.target.value) : undefined)
+                }
                 className={INPUT}
-                style={{ borderColor: errors.drinking_fr_per_week ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+                style={{
+                  borderColor: errors.drinking_fr_per_week ? "#EF4444" : "rgba(13,59,110,0.2)",
+                  fontFamily: "JetBrains Mono",
+                }}
+              />
             </Field>
-            <Field label="1회 음주량 (잔)" required error={errors.drinking_amount_per_session} hint="예: 5">
-              <input type="number" min="1" placeholder="5"
+            <Field
+              label="1회 음주량 (잔)"
+              required
+              error={errors.drinking_amount_per_session}
+              hint="예: 5"
+            >
+              <input
+                type="number"
+                min="1"
+                placeholder="5"
                 value={form.drinking_amount_per_session ?? ""}
-                onChange={(e) => set("drinking_amount_per_session")(e.target.value ? Number(e.target.value) : undefined)}
+                onChange={(e) =>
+                  set("drinking_amount_per_session")(
+                    e.target.value ? Number(e.target.value) : undefined
+                  )
+                }
                 className={INPUT}
-                style={{ borderColor: errors.drinking_amount_per_session ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+                style={{
+                  borderColor: errors.drinking_amount_per_session
+                    ? "#EF4444"
+                    : "rgba(13,59,110,0.2)",
+                  fontFamily: "JetBrains Mono",
+                }}
+              />
             </Field>
           </div>
         )}
@@ -245,38 +318,65 @@ function SurveyForm({ onCancel, onSuccess }: {
         </div>
         <div className="grid sm:grid-cols-3 gap-4">
           <Field label="수축기 혈압 (mmHg)" required error={errors.systolic_bp} hint="예: 120">
-            <input type="number" min="1" placeholder="120"
+            <input
+              type="number"
+              min="1"
+              placeholder="120"
               value={form.systolic_bp || ""}
               onChange={(e) => set("systolic_bp")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.systolic_bp ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.systolic_bp ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="이완기 혈압 (mmHg)" required error={errors.diastolic_bp} hint="예: 80">
-            <input type="number" min="1" placeholder="80"
+            <input
+              type="number"
+              min="1"
+              placeholder="80"
               value={form.diastolic_bp || ""}
               onChange={(e) => set("diastolic_bp")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.diastolic_bp ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.diastolic_bp ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="맥박 (bpm)" error={errors.pulse} hint="선택 사항">
-            <input type="number" min="1" placeholder="72"
+            <input
+              type="number"
+              min="1"
+              placeholder="72"
               value={form.pulse ?? ""}
               onChange={(e) => set("pulse")(e.target.value ? Number(e.target.value) : undefined)}
               className={INPUT}
-              style={{ borderColor: errors.pulse ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.pulse ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
         </div>
       </div>
 
       {/* Actions */}
       <div className="flex gap-3 justify-end">
-        <button type="button" onClick={onCancel}
-          className="flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-medium text-muted-foreground border border-border hover:bg-muted transition-colors">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-medium text-muted-foreground border border-border hover:bg-muted transition-colors"
+        >
           <X size={14} /> 취소
         </button>
-        <button type="submit" disabled={saving}
+        <button
+          type="submit"
+          disabled={saving}
           className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60 transition-opacity"
-          style={{ backgroundColor: "#10B981" }}>
+          style={{ backgroundColor: "#10B981" }}
+        >
           {saving ? (
             <span className="flex items-center gap-2">
               <Loader2 size={15} className="animate-spin" />
@@ -294,15 +394,16 @@ function SurveyForm({ onCancel, onSuccess }: {
 }
 
 /* ── Detail Modal ── */
-function DetailModal({ survey, onClose }: {
-  survey: HealthSurveyDetail;
-  onClose: () => void;
-}) {
+function DetailModal({ survey, onClose }: { survey: HealthSurveyDetail; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-xl"
-        onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-border px-6 py-4 flex items-center justify-between">
           <div>
@@ -311,7 +412,10 @@ function DetailModal({ survey, onClose }: {
               {formatDateTime(survey.created_at)}
             </p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors">
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors"
+          >
             <X size={16} />
           </button>
         </div>
@@ -327,7 +431,9 @@ function DetailModal({ survey, onClose }: {
             <div className="px-4 py-3 bg-muted rounded-lg">
               <div className="text-sm text-foreground mb-1">{survey.smoking_status}</div>
               {survey.smoking_fr_per_day && (
-                <div className="text-xs text-muted-foreground">하루 {survey.smoking_fr_per_day}개비</div>
+                <div className="text-xs text-muted-foreground">
+                  하루 {survey.smoking_fr_per_day}개비
+                </div>
               )}
             </div>
           </div>
@@ -357,20 +463,29 @@ function DetailModal({ survey, onClose }: {
             <div className="grid grid-cols-2 gap-3">
               <div className="px-4 py-3 bg-muted rounded-lg">
                 <div className="text-xs text-muted-foreground mb-1">수축기 혈압</div>
-                <div className="text-lg font-semibold text-foreground" style={{ fontFamily: "JetBrains Mono" }}>
+                <div
+                  className="text-lg font-semibold text-foreground"
+                  style={{ fontFamily: "JetBrains Mono" }}
+                >
                   {survey.systolic_bp} <span className="text-sm font-normal">mmHg</span>
                 </div>
               </div>
               <div className="px-4 py-3 bg-muted rounded-lg">
                 <div className="text-xs text-muted-foreground mb-1">이완기 혈압</div>
-                <div className="text-lg font-semibold text-foreground" style={{ fontFamily: "JetBrains Mono" }}>
+                <div
+                  className="text-lg font-semibold text-foreground"
+                  style={{ fontFamily: "JetBrains Mono" }}
+                >
                   {survey.diastolic_bp} <span className="text-sm font-normal">mmHg</span>
                 </div>
               </div>
               {survey.pulse && (
                 <div className="px-4 py-3 bg-muted rounded-lg col-span-2">
                   <div className="text-xs text-muted-foreground mb-1">맥박</div>
-                  <div className="text-lg font-semibold text-foreground" style={{ fontFamily: "JetBrains Mono" }}>
+                  <div
+                    className="text-lg font-semibold text-foreground"
+                    style={{ fontFamily: "JetBrains Mono" }}
+                  >
                     {survey.pulse} <span className="text-sm font-normal">bpm</span>
                   </div>
                 </div>
@@ -431,15 +546,22 @@ export default function MonthlyHealth() {
       {/* Header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2" style={{ fontFamily: "JetBrains Mono" }}>
+          <div
+            className="flex items-center gap-2 text-xs text-muted-foreground mb-2"
+            style={{ fontFamily: "JetBrains Mono" }}
+          >
             건강정보 기록 / 월별 건강설문
           </div>
           <h1 className="text-2xl font-semibold text-foreground mb-1">월별 건강설문</h1>
-          <p className="text-sm text-muted-foreground">매월 건강 상태를 기록하고 변화 추이를 확인합니다.</p>
+          <p className="text-sm text-muted-foreground">
+            매월 건강 상태를 기록하고 변화 추이를 확인합니다.
+          </p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
+        <button
+          onClick={() => setShowForm(!showForm)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90 flex-shrink-0"
-          style={{ backgroundColor: "#0D3B6E" }}>
+          style={{ backgroundColor: "#0D3B6E" }}
+        >
           <Plus size={15} /> 이번 달 기록
         </button>
       </div>
@@ -449,9 +571,16 @@ export default function MonthlyHealth() {
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm mb-6"
-          style={{ backgroundColor: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", color: "#DC2626" }}>
-          <AlertCircle size={15} className="flex-shrink-0" />{error}
+        <div
+          className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm mb-6"
+          style={{
+            backgroundColor: "rgba(239,68,68,0.06)",
+            border: "1px solid rgba(239,68,68,0.2)",
+            color: "#DC2626",
+          }}
+        >
+          <AlertCircle size={15} className="flex-shrink-0" />
+          {error}
         </div>
       )}
 
@@ -476,14 +605,22 @@ export default function MonthlyHealth() {
       {!loading && surveys.length > 0 && (
         <div className="flex flex-col gap-3">
           {surveys.map((survey) => (
-            <button key={survey.id}
+            <button
+              key={survey.id}
               onClick={() => handleViewDetail(survey.id)}
               className="bg-white border border-border rounded-xl overflow-hidden hover:shadow-sm transition-shadow text-left"
-              disabled={loadingDetail}>
+              disabled={loadingDetail}
+            >
               <div className="px-5 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-medium flex-shrink-0"
-                    style={{ backgroundColor: "rgba(13,59,110,0.07)", color: "#0D3B6E", fontFamily: "JetBrains Mono" }}>
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-medium flex-shrink-0"
+                    style={{
+                      backgroundColor: "rgba(13,59,110,0.07)",
+                      color: "#0D3B6E",
+                      fontFamily: "JetBrains Mono",
+                    }}
+                  >
                     <CalendarDays size={16} />
                   </div>
                   <div className="flex-1 min-w-0">

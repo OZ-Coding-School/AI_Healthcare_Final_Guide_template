@@ -1,7 +1,21 @@
 import { useState, useEffect } from "react";
 import {
-  Plus, Microscope, ChevronRight, Loader2, AlertCircle, CheckCircle, X, Eye,
-  User, Activity, Heart, Droplets, Clipboard, TestTube, Calendar, ChevronLeft,
+  Plus,
+  Microscope,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  X,
+  Eye,
+  User,
+  Activity,
+  Heart,
+  Droplets,
+  Clipboard,
+  TestTube,
+  Calendar,
+  ChevronLeft,
   AlertTriangle,
 } from "lucide-react";
 import {
@@ -96,8 +110,10 @@ function StatusBadge({ status }: { status: Status }) {
   };
   const { bg, color, icon: Icon, label } = config[status];
   return (
-    <span className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-      style={{ fontFamily: "JetBrains Mono", backgroundColor: bg, color }}>
+    <span
+      className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
+      style={{ fontFamily: "JetBrains Mono", backgroundColor: bg, color }}
+    >
       <Icon size={10} /> {label}
     </span>
   );
@@ -114,8 +130,18 @@ const URINE_OPTIONS: { value: UrineProteinStatus | UrineGlucoseStatus; label: st
 ];
 
 /* ── Input Field ── */
-function Field({ label, required, error, hint, children }: {
-  label: string; required?: boolean; error?: string; hint?: string; children: React.ReactNode;
+function Field({
+  label,
+  required,
+  error,
+  hint,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
+  children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -126,7 +152,8 @@ function Field({ label, required, error, hint, children }: {
       {children}
       {error && (
         <span className="text-xs flex items-center gap-1 text-red-500">
-          <AlertCircle size={11} />{error}
+          <AlertCircle size={11} />
+          {error}
         </span>
       )}
       {hint && !error && <span className="text-xs text-muted-foreground">{hint}</span>}
@@ -140,10 +167,7 @@ const INPUT = cn(
 );
 
 /* ── Screening Form ── */
-function ScreeningForm({ onCancel, onSuccess }: {
-  onCancel: () => void;
-  onSuccess: () => void;
-}) {
+function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: () => void }) {
   const [form, setForm] = useState<CreateAnnualHealthScreeningBody>({
     height: 0,
     weight: 0,
@@ -181,7 +205,7 @@ function ScreeningForm({ onCancel, onSuccess }: {
       const h = k === "height" ? Number(v) : form.height;
       const w = k === "weight" ? Number(v) : form.weight;
       if (h > 0 && w > 0) {
-        const bmi = w / ((h / 100) ** 2);
+        const bmi = w / (h / 100) ** 2;
         setForm((f) => ({ ...f, bmi: Math.round(bmi * 10) / 10 }));
       }
     }
@@ -191,10 +215,18 @@ function ScreeningForm({ onCancel, onSuccess }: {
     const e: Record<string, string> = {};
 
     // Required fields
-    if (!form.height || form.height <= 0 || form.height > 300) e.height = "키를 올바르게 입력해주세요 (0.1~300.0).";
-    if (!form.weight || form.weight <= 0 || form.weight > 500) e.weight = "체중을 올바르게 입력해주세요 (0.1~500.0).";
-    if (!form.bmi || form.bmi <= 0 || form.bmi > 100) e.bmi = "BMI를 올바르게 입력해주세요 (0.1~100.0).";
-    if (!form.waist_circumference || form.waist_circumference <= 0 || form.waist_circumference > 200) e.waist_circumference = "허리둘레를 올바르게 입력해주세요.";
+    if (!form.height || form.height <= 0 || form.height > 300)
+      e.height = "키를 올바르게 입력해주세요 (0.1~300.0).";
+    if (!form.weight || form.weight <= 0 || form.weight > 500)
+      e.weight = "체중을 올바르게 입력해주세요 (0.1~500.0).";
+    if (!form.bmi || form.bmi <= 0 || form.bmi > 100)
+      e.bmi = "BMI를 올바르게 입력해주세요 (0.1~100.0).";
+    if (
+      !form.waist_circumference ||
+      form.waist_circumference <= 0 ||
+      form.waist_circumference > 200
+    )
+      e.waist_circumference = "허리둘레를 올바르게 입력해주세요.";
     if (!form.sbp || form.sbp <= 0) e.sbp = "수축기 혈압을 입력해주세요.";
     if (!form.dbp || form.dbp <= 0) e.dbp = "이완기 혈압을 입력해주세요.";
     if (!form.pulse || form.pulse <= 0) e.pulse = "맥박을 입력해주세요.";
@@ -203,7 +235,8 @@ function ScreeningForm({ onCancel, onSuccess }: {
     if (!form.triglyceride || form.triglyceride <= 0) e.triglyceride = "중성지방을 입력해주세요.";
     if (!form.ldl || form.ldl <= 0) e.ldl = "LDL 콜레스테롤을 입력해주세요.";
     if (!form.hdl || form.hdl <= 0) e.hdl = "HDL 콜레스테롤을 입력해주세요.";
-    if (!form.total_cholesterol || form.total_cholesterol <= 0) e.total_cholesterol = "총 콜레스테롤을 입력해주세요.";
+    if (!form.total_cholesterol || form.total_cholesterol <= 0)
+      e.total_cholesterol = "총 콜레스테롤을 입력해주세요.";
     if (!form.ast || form.ast <= 0) e.ast = "AST를 입력해주세요.";
     if (!form.alt || form.alt <= 0) e.alt = "ALT를 입력해주세요.";
     if (!form.gamma_gtp || form.gamma_gtp <= 0) e.gamma_gtp = "감마 GTP를 입력해주세요.";
@@ -239,9 +272,16 @@ function ScreeningForm({ onCancel, onSuccess }: {
       </h3>
 
       {apiError && (
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm mb-5"
-          style={{ backgroundColor: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", color: "#DC2626" }}>
-          <AlertCircle size={15} className="flex-shrink-0" />{apiError}
+        <div
+          className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm mb-5"
+          style={{
+            backgroundColor: "rgba(239,68,68,0.06)",
+            border: "1px solid rgba(239,68,68,0.2)",
+            color: "#DC2626",
+          }}
+        >
+          <AlertCircle size={15} className="flex-shrink-0" />
+          {apiError}
         </div>
       )}
 
@@ -253,16 +293,27 @@ function ScreeningForm({ onCancel, onSuccess }: {
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="검진 일자" required error={errors.screening_at}>
-            <input type="date" value={form.screening_at}
+            <input
+              type="date"
+              value={form.screening_at}
               onChange={(e) => set("screening_at")(e.target.value)}
               className={INPUT}
-              style={{ borderColor: errors.screening_at ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.screening_at ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">공복 여부</label>
             <div className="flex gap-2">
-              {[{ v: true, l: "공복" }, { v: false, l: "비공복" }].map(({ v, l }) => (
-                <button key={String(v)} type="button"
+              {[
+                { v: true, l: "공복" },
+                { v: false, l: "비공복" },
+              ].map(({ v, l }) => (
+                <button
+                  key={String(v)}
+                  type="button"
                   onClick={() => set("is_fasting")(v)}
                   className={cn(
                     "flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border transition-all",
@@ -270,7 +321,8 @@ function ScreeningForm({ onCancel, onSuccess }: {
                       ? "border-primary text-white"
                       : "border-border text-foreground hover:border-primary/50"
                   )}
-                  style={form.is_fasting === v ? { backgroundColor: "#0D3B6E" } : {}}>
+                  style={form.is_fasting === v ? { backgroundColor: "#0D3B6E" } : {}}
+                >
                   {l}
                 </button>
               ))}
@@ -287,33 +339,71 @@ function ScreeningForm({ onCancel, onSuccess }: {
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="키 (cm)" required error={errors.height} hint="예: 175.5">
-            <input type="number" step="0.1" min="0.1" max="300" placeholder="175.5"
+            <input
+              type="number"
+              step="0.1"
+              min="0.1"
+              max="300"
+              placeholder="175.5"
               value={form.height || ""}
               onChange={(e) => set("height")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.height ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.height ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="체중 (kg)" required error={errors.weight} hint="예: 70.0">
-            <input type="number" step="0.1" min="0.1" max="500" placeholder="70.0"
+            <input
+              type="number"
+              step="0.1"
+              min="0.1"
+              max="500"
+              placeholder="70.0"
               value={form.weight || ""}
               onChange={(e) => set("weight")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.weight ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.weight ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="BMI" required error={errors.bmi} hint="자동 계산됨">
-            <input type="number" step="0.1" min="0.1" max="100" placeholder="22.7"
+            <input
+              type="number"
+              step="0.1"
+              min="0.1"
+              max="100"
+              placeholder="22.7"
               value={form.bmi || ""}
               onChange={(e) => set("bmi")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.bmi ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }}
-              readOnly />
+              style={{
+                borderColor: errors.bmi ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+              readOnly
+            />
           </Field>
           <Field label="허리둘레 (cm)" required error={errors.waist_circumference} hint="예: 85.0">
-            <input type="number" step="0.1" min="0.1" max="200" placeholder="85.0"
+            <input
+              type="number"
+              step="0.1"
+              min="0.1"
+              max="200"
+              placeholder="85.0"
               value={form.waist_circumference || ""}
-              onChange={(e) => set("waist_circumference")(e.target.value ? Number(e.target.value) : 0)}
+              onChange={(e) =>
+                set("waist_circumference")(e.target.value ? Number(e.target.value) : 0)
+              }
               className={INPUT}
-              style={{ borderColor: errors.waist_circumference ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.waist_circumference ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
         </div>
       </div>
@@ -326,25 +416,46 @@ function ScreeningForm({ onCancel, onSuccess }: {
         </div>
         <div className="grid sm:grid-cols-3 gap-4">
           <Field label="수축기 혈압 (mmHg)" required error={errors.sbp}>
-            <input type="number" min="1" placeholder="120"
+            <input
+              type="number"
+              min="1"
+              placeholder="120"
               value={form.sbp || ""}
               onChange={(e) => set("sbp")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.sbp ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.sbp ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="이완기 혈압 (mmHg)" required error={errors.dbp}>
-            <input type="number" min="1" placeholder="80"
+            <input
+              type="number"
+              min="1"
+              placeholder="80"
               value={form.dbp || ""}
               onChange={(e) => set("dbp")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.dbp ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.dbp ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="맥박 (bpm)" required error={errors.pulse}>
-            <input type="number" min="1" placeholder="72"
+            <input
+              type="number"
+              min="1"
+              placeholder="72"
               value={form.pulse || ""}
               onChange={(e) => set("pulse")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.pulse ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.pulse ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
         </div>
       </div>
@@ -357,18 +468,33 @@ function ScreeningForm({ onCancel, onSuccess }: {
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="공복 혈당 (mg/dL)" required error={errors.fbs}>
-            <input type="number" min="1" placeholder="95"
+            <input
+              type="number"
+              min="1"
+              placeholder="95"
               value={form.fbs || ""}
               onChange={(e) => set("fbs")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.fbs ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.fbs ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="당화혈색소 (%)" required error={errors.hba1c}>
-            <input type="number" step="0.1" min="0.1" placeholder="5.4"
+            <input
+              type="number"
+              step="0.1"
+              min="0.1"
+              placeholder="5.4"
               value={form.hba1c || ""}
               onChange={(e) => set("hba1c")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.hba1c ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.hba1c ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
         </div>
       </div>
@@ -381,32 +507,62 @@ function ScreeningForm({ onCancel, onSuccess }: {
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="중성지방 (mg/dL)" required error={errors.triglyceride}>
-            <input type="number" min="1" placeholder="150"
+            <input
+              type="number"
+              min="1"
+              placeholder="150"
               value={form.triglyceride || ""}
               onChange={(e) => set("triglyceride")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.triglyceride ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.triglyceride ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="총 콜레스테롤 (mg/dL)" required error={errors.total_cholesterol}>
-            <input type="number" min="1" placeholder="190"
+            <input
+              type="number"
+              min="1"
+              placeholder="190"
               value={form.total_cholesterol || ""}
-              onChange={(e) => set("total_cholesterol")(e.target.value ? Number(e.target.value) : 0)}
+              onChange={(e) =>
+                set("total_cholesterol")(e.target.value ? Number(e.target.value) : 0)
+              }
               className={INPUT}
-              style={{ borderColor: errors.total_cholesterol ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.total_cholesterol ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="LDL 콜레스테롤 (mg/dL)" required error={errors.ldl}>
-            <input type="number" min="1" placeholder="100"
+            <input
+              type="number"
+              min="1"
+              placeholder="100"
               value={form.ldl || ""}
               onChange={(e) => set("ldl")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.ldl ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.ldl ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="HDL 콜레스테롤 (mg/dL)" required error={errors.hdl}>
-            <input type="number" min="1" placeholder="60"
+            <input
+              type="number"
+              min="1"
+              placeholder="60"
               value={form.hdl || ""}
               onChange={(e) => set("hdl")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.hdl ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.hdl ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
         </div>
       </div>
@@ -419,39 +575,75 @@ function ScreeningForm({ onCancel, onSuccess }: {
         </div>
         <div className="grid sm:grid-cols-3 gap-4">
           <Field label="AST (U/L)" required error={errors.ast}>
-            <input type="number" min="1" placeholder="25"
+            <input
+              type="number"
+              min="1"
+              placeholder="25"
               value={form.ast || ""}
               onChange={(e) => set("ast")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.ast ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.ast ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="ALT (U/L)" required error={errors.alt}>
-            <input type="number" min="1" placeholder="20"
+            <input
+              type="number"
+              min="1"
+              placeholder="20"
               value={form.alt || ""}
               onChange={(e) => set("alt")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.alt ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.alt ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="감마 GTP (U/L)" required error={errors.gamma_gtp}>
-            <input type="number" min="1" placeholder="30"
+            <input
+              type="number"
+              min="1"
+              placeholder="30"
               value={form.gamma_gtp || ""}
               onChange={(e) => set("gamma_gtp")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.gamma_gtp ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.gamma_gtp ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="신사구체여과율 (mL/min)" required error={errors.egfr}>
-            <input type="number" min="1" placeholder="90"
+            <input
+              type="number"
+              min="1"
+              placeholder="90"
               value={form.egfr || ""}
               onChange={(e) => set("egfr")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.egfr ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.egfr ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           <Field label="크레아티닌 (mg/dL)" required error={errors.creatinine}>
-            <input type="number" step="0.1" min="0.1" placeholder="1.0"
+            <input
+              type="number"
+              step="0.1"
+              min="0.1"
+              placeholder="1.0"
               value={form.creatinine || ""}
               onChange={(e) => set("creatinine")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.creatinine ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.creatinine ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
         </div>
       </div>
@@ -464,22 +656,30 @@ function ScreeningForm({ onCancel, onSuccess }: {
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="단백" required>
-            <select value={form.urine_protein}
+            <select
+              value={form.urine_protein}
               onChange={(e) => set("urine_protein")(e.target.value as UrineProteinStatus)}
               className={INPUT}
-              style={{ borderColor: "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }}>
+              style={{ borderColor: "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }}
+            >
               {URINE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
           </Field>
           <Field label="요당" required>
-            <select value={form.urine_glucose}
+            <select
+              value={form.urine_glucose}
               onChange={(e) => set("urine_glucose")(e.target.value as UrineGlucoseStatus)}
               className={INPUT}
-              style={{ borderColor: "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }}>
+              style={{ borderColor: "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }}
+            >
               {URINE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
           </Field>
@@ -494,15 +694,21 @@ function ScreeningForm({ onCancel, onSuccess }: {
         </div>
         <div className="flex flex-col gap-3">
           <label className="flex items-center gap-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/30 transition-colors">
-            <input type="checkbox" checked={form.family_history_diabetes}
+            <input
+              type="checkbox"
+              checked={form.family_history_diabetes}
               onChange={(e) => set("family_history_diabetes")(e.target.checked)}
-              className="w-4 h-4 rounded border-border" />
+              className="w-4 h-4 rounded border-border"
+            />
             <span className="text-sm text-foreground">당뇨 가족력 있음</span>
           </label>
           <label className="flex items-center gap-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/30 transition-colors">
-            <input type="checkbox" checked={form.family_history_hypertension}
+            <input
+              type="checkbox"
+              checked={form.family_history_hypertension}
               onChange={(e) => set("family_history_hypertension")(e.target.checked)}
-              className="w-4 h-4 rounded border-border" />
+              className="w-4 h-4 rounded border-border"
+            />
             <span className="text-sm text-foreground">고혈압 가족력 있음</span>
           </label>
         </div>
@@ -510,13 +716,19 @@ function ScreeningForm({ onCancel, onSuccess }: {
 
       {/* Actions */}
       <div className="flex gap-3 justify-end">
-        <button type="button" onClick={onCancel}
-          className="flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-medium text-muted-foreground border border-border hover:bg-muted transition-colors">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-medium text-muted-foreground border border-border hover:bg-muted transition-colors"
+        >
           <X size={14} /> 취소
         </button>
-        <button type="submit" disabled={saving}
+        <button
+          type="submit"
+          disabled={saving}
           className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60 transition-opacity"
-          style={{ backgroundColor: "#10B981" }}>
+          style={{ backgroundColor: "#10B981" }}
+        >
           {saving ? (
             <span className="flex items-center gap-2">
               <Loader2 size={15} className="animate-spin" />
@@ -534,53 +746,80 @@ function ScreeningForm({ onCancel, onSuccess }: {
 }
 
 /* ── Detail Modal ── */
-function DetailModal({ screening, onClose }: {
-  screening: AnnualHealthScreeningDetail;
-  onClose: () => void;
-}) {
-  const Section = ({ icon: Icon, title, children }: { icon: typeof User; title: string; children: React.ReactNode }) => (
-    <div>
-      <div className="flex items-center gap-2 mb-3">
-        <Icon size={15} style={{ color: "#0D3B6E" }} />
-        <h4 className="font-semibold text-foreground text-sm">{title}</h4>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {children}
-      </div>
+const Section = ({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: typeof User;
+  title: string;
+  children: React.ReactNode;
+}) => (
+  <div>
+    <div className="flex items-center gap-2 mb-3">
+      <Icon size={15} style={{ color: "#0D3B6E" }} />
+      <h4 className="font-semibold text-foreground text-sm">{title}</h4>
     </div>
-  );
+    <div className="grid grid-cols-2 gap-3">{children}</div>
+  </div>
+);
 
-  const Item = ({ label, value, unit }: { label: string; value: string | number; unit?: string }) => (
+const Item = ({ label, value, unit }: { label: string; value: string | number; unit?: string }) => (
+  <div className="px-4 py-3 bg-muted rounded-lg">
+    <div className="text-xs text-muted-foreground mb-1">{label}</div>
+    <div
+      className="text-base font-semibold text-foreground"
+      style={{ fontFamily: "JetBrains Mono" }}
+    >
+      {value} {unit && <span className="text-sm font-normal">{unit}</span>}
+    </div>
+  </div>
+);
+
+const ItemWithStatus = ({
+  label,
+  value,
+  unit,
+  type,
+}: {
+  label: string;
+  value: number;
+  unit?: string;
+  type: string;
+}) => {
+  const status = getStatus(value, type);
+  return (
     <div className="px-4 py-3 bg-muted rounded-lg">
-      <div className="text-xs text-muted-foreground mb-1">{label}</div>
-      <div className="text-base font-semibold text-foreground" style={{ fontFamily: "JetBrains Mono" }}>
+      <div className="flex items-center justify-between mb-1">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <StatusBadge status={status} />
+      </div>
+      <div
+        className="text-base font-semibold text-foreground"
+        style={{ fontFamily: "JetBrains Mono" }}
+      >
         {value} {unit && <span className="text-sm font-normal">{unit}</span>}
       </div>
     </div>
   );
+};
 
-  const ItemWithStatus = ({ label, value, unit, type }: {
-    label: string; value: number; unit?: string; type: string;
-  }) => {
-    const status = getStatus(value, type);
-    return (
-      <div className="px-4 py-3 bg-muted rounded-lg">
-        <div className="flex items-center justify-between mb-1">
-          <div className="text-xs text-muted-foreground">{label}</div>
-          <StatusBadge status={status} />
-        </div>
-        <div className="text-base font-semibold text-foreground" style={{ fontFamily: "JetBrains Mono" }}>
-          {value} {unit && <span className="text-sm font-normal">{unit}</span>}
-        </div>
-      </div>
-    );
-  };
-
+function DetailModal({
+  screening,
+  onClose,
+}: {
+  screening: AnnualHealthScreeningDetail;
+  onClose: () => void;
+}) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl"
-        onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-border px-6 py-4 flex items-center justify-between">
           <div>
@@ -592,7 +831,10 @@ function DetailModal({ screening, onClose }: {
               - 공복 검사 여부: {screening.is_fasting ? "공복" : "비공복"}
             </p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors">
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors"
+          >
             <X size={16} />
           </button>
         </div>
@@ -618,8 +860,18 @@ function DetailModal({ screening, onClose }: {
           </Section>
 
           <Section icon={Activity} title="콜레스테롤">
-            <ItemWithStatus label="중성지방" value={screening.triglyceride} unit="mg/dL" type="triglyceride" />
-            <ItemWithStatus label="총 콜레스테롤" value={screening.total_cholesterol} unit="mg/dL" type="total_cholesterol" />
+            <ItemWithStatus
+              label="중성지방"
+              value={screening.triglyceride}
+              unit="mg/dL"
+              type="triglyceride"
+            />
+            <ItemWithStatus
+              label="총 콜레스테롤"
+              value={screening.total_cholesterol}
+              unit="mg/dL"
+              type="total_cholesterol"
+            />
             <ItemWithStatus label="LDL 콜레스테롤" value={screening.ldl} unit="mg/dL" type="ldl" />
             <ItemWithStatus label="HDL 콜레스테롤" value={screening.hdl} unit="mg/dL" type="hdl" />
           </Section>
@@ -627,9 +879,24 @@ function DetailModal({ screening, onClose }: {
           <Section icon={TestTube} title="간기능 & 신기능">
             <ItemWithStatus label="AST" value={screening.ast} unit="U/L" type="ast" />
             <ItemWithStatus label="ALT" value={screening.alt} unit="U/L" type="alt" />
-            <ItemWithStatus label="감마 GTP" value={screening.gamma_gtp} unit="U/L" type="gamma_gtp" />
-            <ItemWithStatus label="신사구체여과율" value={screening.egfr} unit="mL/min" type="egfr" />
-            <ItemWithStatus label="크레아티닌" value={screening.creatinine} unit="mg/dL" type="creatinine" />
+            <ItemWithStatus
+              label="감마 GTP"
+              value={screening.gamma_gtp}
+              unit="U/L"
+              type="gamma_gtp"
+            />
+            <ItemWithStatus
+              label="신사구체여과율"
+              value={screening.egfr}
+              unit="mL/min"
+              type="egfr"
+            />
+            <ItemWithStatus
+              label="크레아티닌"
+              value={screening.creatinine}
+              unit="mg/dL"
+              type="creatinine"
+            />
           </Section>
 
           <Section icon={Clipboard} title="요검사">
@@ -643,20 +910,30 @@ function DetailModal({ screening, onClose }: {
               <h4 className="font-semibold text-foreground text-sm">가족력</h4>
             </div>
             <div className="flex gap-3">
-              <div className={cn(
-                "flex-1 px-4 py-3 rounded-lg border",
-                screening.family_history_diabetes ? "border-red-200 bg-red-50" : "border-border bg-muted"
-              )}>
+              <div
+                className={cn(
+                  "flex-1 px-4 py-3 rounded-lg border",
+                  screening.family_history_diabetes
+                    ? "border-red-200 bg-red-50"
+                    : "border-border bg-muted"
+                )}
+              >
                 <div className="text-sm text-foreground">
                   {screening.family_history_diabetes ? "✓ 당뇨 가족력 있음" : "당뇨 가족력 없음"}
                 </div>
               </div>
-              <div className={cn(
-                "flex-1 px-4 py-3 rounded-lg border",
-                screening.family_history_hypertension ? "border-red-200 bg-red-50" : "border-border bg-muted"
-              )}>
+              <div
+                className={cn(
+                  "flex-1 px-4 py-3 rounded-lg border",
+                  screening.family_history_hypertension
+                    ? "border-red-200 bg-red-50"
+                    : "border-border bg-muted"
+                )}
+              >
                 <div className="text-sm text-foreground">
-                  {screening.family_history_hypertension ? "✓ 고혈압 가족력 있음" : "고혈압 가족력 없음"}
+                  {screening.family_history_hypertension
+                    ? "✓ 고혈압 가족력 있음"
+                    : "고혈압 가족력 없음"}
                 </div>
               </div>
             </div>
@@ -673,7 +950,9 @@ export default function HealthCheckup() {
   const [screenings, setScreenings] = useState<AnnualHealthScreening[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedScreening, setSelectedScreening] = useState<AnnualHealthScreeningDetail | null>(null);
+  const [selectedScreening, setSelectedScreening] = useState<AnnualHealthScreeningDetail | null>(
+    null
+  );
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   const loadScreenings = async () => {
@@ -715,19 +994,30 @@ export default function HealthCheckup() {
       {/* Header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2" style={{ fontFamily: "JetBrains Mono" }}>
+          <div
+            className="flex items-center gap-2 text-xs text-muted-foreground mb-2"
+            style={{ fontFamily: "JetBrains Mono" }}
+          >
             건강정보 기록 / 건강검진 기록
           </div>
           <h1 className="text-2xl font-semibold text-foreground mb-1">건강검진 기록</h1>
-          <p className="text-sm text-muted-foreground">연도별 건강검진 결과를 기록하고 AI 분석에 활용합니다.</p>
+          <p className="text-sm text-muted-foreground">
+            연도별 건강검진 결과를 기록하고 AI 분석에 활용합니다.
+          </p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
+        <button
+          onClick={() => setShowForm(!showForm)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90 flex-shrink-0"
-          style={{ backgroundColor: "#0D3B6E" }}>
+          style={{ backgroundColor: "#0D3B6E" }}
+        >
           {showForm ? (
-            <><ChevronLeft size={15} /> 목록</>
+            <>
+              <ChevronLeft size={15} /> 목록
+            </>
           ) : (
-            <><Plus size={15} /> 검진 결과 추가</>
+            <>
+              <Plus size={15} /> 검진 결과 추가
+            </>
           )}
         </button>
       </div>
@@ -737,9 +1027,16 @@ export default function HealthCheckup() {
 
       {/* Error */}
       {!showForm && error && (
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm mb-6"
-          style={{ backgroundColor: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", color: "#DC2626" }}>
-          <AlertCircle size={15} className="flex-shrink-0" />{error}
+        <div
+          className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm mb-6"
+          style={{
+            backgroundColor: "rgba(239,68,68,0.06)",
+            border: "1px solid rgba(239,68,68,0.2)",
+            color: "#DC2626",
+          }}
+        >
+          <AlertCircle size={15} className="flex-shrink-0" />
+          {error}
         </div>
       )}
 
@@ -764,14 +1061,22 @@ export default function HealthCheckup() {
       {!showForm && !loading && screenings.length > 0 && (
         <div className="flex flex-col gap-3">
           {screenings.map((screening) => (
-            <button key={screening.id}
+            <button
+              key={screening.id}
               onClick={() => handleViewDetail(screening.id)}
               className="bg-white border border-border rounded-xl overflow-hidden hover:shadow-sm transition-shadow text-left"
-              disabled={loadingDetail}>
+              disabled={loadingDetail}
+            >
               <div className="px-5 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-medium flex-shrink-0"
-                    style={{ backgroundColor: "rgba(13,59,110,0.07)", color: "#0D3B6E", fontFamily: "JetBrains Mono" }}>
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-medium flex-shrink-0"
+                    style={{
+                      backgroundColor: "rgba(13,59,110,0.07)",
+                      color: "#0D3B6E",
+                      fontFamily: "JetBrains Mono",
+                    }}
+                  >
                     <Microscope size={16} />
                   </div>
                   <div className="flex-1 min-w-0">

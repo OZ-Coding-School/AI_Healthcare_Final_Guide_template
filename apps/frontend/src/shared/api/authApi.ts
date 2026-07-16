@@ -4,22 +4,16 @@ import { request } from "./client";
 const BASE = "/api/v1/auth";
 
 export type WithdrawalReason =
-  | "NOT_USEFUL"
-  | "INCONVENIENT"
-  | "PRIVACY"
-  | "TOO_FREQUENT"
-  | "SWITCH_SERVICE"
-  | "OTHER";
+  "NOT_USEFUL" | "INCONVENIENT" | "PRIVACY" | "TOO_FREQUENT" | "SWITCH_SERVICE" | "OTHER";
 
 export const WITHDRAWAL_REASON_LABELS: Record<WithdrawalReason, string> = {
-  NOT_USEFUL:      "서비스가 도움이 되지 않아요",
-  INCONVENIENT:    "사용이 불편해요",
-  PRIVACY:         "개인정보가 걱정돼요",
-  TOO_FREQUENT:    "알림이 너무 많아요",
-  SWITCH_SERVICE:  "다른 서비스를 이용할게요",
-  OTHER:           "기타",
+  NOT_USEFUL: "서비스가 도움이 되지 않아요",
+  INCONVENIENT: "사용이 불편해요",
+  PRIVACY: "개인정보가 걱정돼요",
+  TOO_FREQUENT: "알림이 너무 많아요",
+  SWITCH_SERVICE: "다른 서비스를 이용할게요",
+  OTHER: "기타",
 };
-
 
 /* ── Auth API calls ── */
 
@@ -55,10 +49,10 @@ export function verifySignupEmail(email: string, code: string) {
 
 /** 4. 로그인 */
 export async function login(email: string, password: string): Promise<string> {
-  const { access_token } = await request<{ access_token: string }>(
-    `${BASE}/login`,
-    { method: "POST", body: JSON.stringify({ email, password }) },
-  );
+  const { access_token } = await request<{ access_token: string }>(`${BASE}/login`, {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
   saveToken(access_token);
   return access_token;
 }

@@ -1,20 +1,46 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
-  Heart, Activity, Droplet, TrendingUp, Calendar, Brain,
-  Target, ChevronRight, AlertCircle, CheckCircle, Clock,
-  Loader2, BarChart3, LineChart, Users, Award, Scale,
-  Gauge, Thermometer, Zap, User, Wind,
+  Heart,
+  Activity,
+  Droplet,
+  TrendingUp,
+  Calendar,
+  Brain,
+  Target,
+  ChevronRight,
+  AlertCircle,
+  Clock,
+  Loader2,
+  BarChart3,
+  Scale,
+  Gauge,
+  User,
+  Wind,
 } from "lucide-react";
 import { getUser } from "../shared/api/auth";
 import { getHealthProfile, HealthProfile } from "../shared/api/healthProfileApi";
-import {getHealthSurveyDetail, getHealthSurveys, HealthSurveyDetail} from "../shared/api/healthSurveyApi";
+import {
+  getHealthSurveyDetail,
+  getHealthSurveys,
+  HealthSurveyDetail,
+} from "../shared/api/healthSurveyApi";
 import { formatDateTime, formatDate } from "../shared/utils/format";
 
 const cn = (...cls: (string | boolean | undefined)[]) => cls.filter(Boolean).join(" ");
 
 /* ── Health Indicator Card ── */
-function HealthIndicatorCard({ icon: Icon, label, value, unit, status, statusLabel, color, bgColor, onClick }: {
+function HealthIndicatorCard({
+  icon: Icon,
+  label,
+  value,
+  unit,
+  status,
+  statusLabel,
+  color,
+  bgColor,
+  onClick,
+}: {
   icon: React.ElementType;
   label: string;
   value: string | number;
@@ -46,7 +72,10 @@ function HealthIndicatorCard({ icon: Icon, label, value, unit, status, statusLab
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: "rgba(255, 255, 255, 0.5)" }}>
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center"
+            style={{ backgroundColor: "rgba(255, 255, 255, 0.5)" }}
+          >
             <Icon size={18} style={{ color }} />
           </div>
           <div className="text-xs font-medium text-muted-foreground">{label}</div>
@@ -75,7 +104,14 @@ function HealthIndicatorCard({ icon: Icon, label, value, unit, status, statusLab
 }
 
 /* ── Action Card ── */
-function ActionCard({ icon: Icon, title, description, color, bgColor, onClick }: {
+function ActionCard({
+  icon: Icon,
+  title,
+  description,
+  color,
+  bgColor,
+  onClick,
+}: {
   icon: React.ElementType;
   title: string;
   description: string;
@@ -89,7 +125,10 @@ function ActionCard({ icon: Icon, title, description, color, bgColor, onClick }:
       className="w-full bg-white border border-border rounded-xl p-5 text-left transition-all hover:shadow-sm hover:border-primary/30"
     >
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bgColor }}>
+        <div
+          className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ backgroundColor: bgColor }}
+        >
           <Icon size={20} style={{ color }} />
         </div>
         <div className="flex-1 min-w-0">
@@ -162,7 +201,9 @@ export default function Dashboard() {
     return (weight / (heightInMeters * heightInMeters)).toFixed(1);
   };
 
-  const getBMIStatus = (bmi: number): { status: "good" | "normal" | "warning" | "danger"; label: string } => {
+  const getBMIStatus = (
+    bmi: number
+  ): { status: "good" | "normal" | "warning" | "danger"; label: string } => {
     if (bmi < 18.5) return { status: "warning", label: "저체중" };
     if (bmi < 23) return { status: "good", label: "정상" };
     if (bmi < 25) return { status: "normal", label: "과체중" };
@@ -170,7 +211,10 @@ export default function Dashboard() {
     return { status: "danger", label: "고도비만" };
   };
 
-  const getBloodPressureStatus = (systolic?: number, diastolic?: number): { status: "good" | "normal" | "warning" | "danger"; label: string } | null => {
+  const getBloodPressureStatus = (
+    systolic?: number,
+    diastolic?: number
+  ): { status: "good" | "normal" | "warning" | "danger"; label: string } | null => {
     if (!systolic || !diastolic) return null;
     if (systolic < 120 && diastolic < 80) return { status: "good", label: "정상" };
     if (systolic < 130 && diastolic < 85) return { status: "normal", label: "주의" };
@@ -178,7 +222,9 @@ export default function Dashboard() {
     return { status: "danger", label: "고혈압" };
   };
 
-  const getFastingBloodSugarStatus = (fbs?: number): { status: "good" | "normal" | "warning" | "danger"; label: string } | null => {
+  const getFastingBloodSugarStatus = (
+    fbs?: number
+  ): { status: "good" | "normal" | "warning" | "danger"; label: string } | null => {
     if (!fbs) return null;
     if (fbs < 100) return { status: "good", label: "정상" };
     if (fbs < 126) return { status: "warning", label: "공복혈당장애" };
@@ -199,13 +245,18 @@ export default function Dashboard() {
 
   const bmi = healthProfile ? calculateBMI(healthProfile.height, healthProfile.weight) : null;
   const bmiStatus = bmi ? getBMIStatus(parseFloat(bmi)) : null;
-  const bpStatus = getBloodPressureStatus(healthProfile?.systolic_blood_pressure, healthProfile?.diastolic_blood_pressure);
+  const bpStatus = getBloodPressureStatus(
+    healthProfile?.systolic_blood_pressure,
+    healthProfile?.diastolic_blood_pressure
+  );
   const fbsStatus = getFastingBloodSugarStatus(healthProfile?.fasting_blood_sugar);
   const age = calculateAge(healthProfile?.birth_date);
 
   // Get latest health survey
   const latestSurvey = latestHealthSurvey;
-  const surveyBpStatus = latestSurvey ? getBloodPressureStatus(latestSurvey.systolic_bp, latestSurvey.diastolic_bp) : null;
+  const surveyBpStatus = latestSurvey
+    ? getBloodPressureStatus(latestSurvey.systolic_bp, latestSurvey.diastolic_bp)
+    : null;
 
   const today = new Date();
   const lastSurveyDate = latestSurvey ? formatDate(latestSurvey.created_at) : null;
@@ -219,7 +270,10 @@ export default function Dashboard() {
     <div className="p-6 lg:p-8 max-w-7xl mx-auto" style={{ fontFamily: "Outfit, sans-serif" }}>
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2" style={{ fontFamily: "JetBrains Mono" }}>
+        <div
+          className="flex items-center gap-2 text-xs text-muted-foreground mb-2"
+          style={{ fontFamily: "JetBrains Mono" }}
+        >
           <Heart size={12} />
           대시보드
         </div>
@@ -276,7 +330,7 @@ export default function Dashboard() {
             나의 건강지표
           </h2>
 
-          {(bmi || bpStatus || fbsStatus || latestSurvey) ? (
+          {bmi || bpStatus || fbsStatus || latestSurvey ? (
             <div className="bg-white border border-border rounded-xl p-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left: Health Profile Data */}
@@ -291,8 +345,12 @@ export default function Dashboard() {
                       {age && (
                         <div>
                           <div className="text-xs text-muted-foreground mb-1">나이</div>
-                          <div className="font-semibold text-foreground" style={{ fontFamily: "JetBrains Mono" }}>
-                            {age}<span className="text-sm text-muted-foreground ml-1">세</span>
+                          <div
+                            className="font-semibold text-foreground"
+                            style={{ fontFamily: "JetBrains Mono" }}
+                          >
+                            {age}
+                            <span className="text-sm text-muted-foreground ml-1">세</span>
                           </div>
                         </div>
                       )}
@@ -300,23 +358,35 @@ export default function Dashboard() {
                         <div>
                           <div className="text-xs text-muted-foreground mb-1">성별</div>
                           <div className="font-semibold text-foreground">
-                            {healthProfile.gender === "M" ? "남성" : healthProfile.gender === "F" ? "여성" : "기타"}
+                            {healthProfile.gender === "M"
+                              ? "남성"
+                              : healthProfile.gender === "F"
+                                ? "여성"
+                                : "기타"}
                           </div>
                         </div>
                       )}
                       {healthProfile.height && (
                         <div>
                           <div className="text-xs text-muted-foreground mb-1">키</div>
-                          <div className="font-semibold text-foreground" style={{ fontFamily: "JetBrains Mono" }}>
-                            {healthProfile.height}<span className="text-sm text-muted-foreground ml-1">cm</span>
+                          <div
+                            className="font-semibold text-foreground"
+                            style={{ fontFamily: "JetBrains Mono" }}
+                          >
+                            {healthProfile.height}
+                            <span className="text-sm text-muted-foreground ml-1">cm</span>
                           </div>
                         </div>
                       )}
                       {healthProfile.weight && (
                         <div>
                           <div className="text-xs text-muted-foreground mb-1">몸무게</div>
-                          <div className="font-semibold text-foreground" style={{ fontFamily: "JetBrains Mono" }}>
-                            {healthProfile.weight}<span className="text-sm text-muted-foreground ml-1">kg</span>
+                          <div
+                            className="font-semibold text-foreground"
+                            style={{ fontFamily: "JetBrains Mono" }}
+                          >
+                            {healthProfile.weight}
+                            <span className="text-sm text-muted-foreground ml-1">kg</span>
                           </div>
                         </div>
                       )}
@@ -325,22 +395,40 @@ export default function Dashboard() {
                     {/* Key Indicators */}
                     <div className="pt-2 space-y-3">
                       {bmi && bmiStatus && (
-                        <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: "rgba(59,130,246,0.05)" }}>
+                        <div
+                          className="flex items-center justify-between p-3 rounded-lg"
+                          style={{ backgroundColor: "rgba(59,130,246,0.05)" }}
+                        >
                           <div className="flex items-center gap-2">
                             <Scale size={16} style={{ color: "#3B82F6" }} />
                             <span className="text-sm text-foreground">체질량지수 (BMI)</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold" style={{ fontFamily: "JetBrains Mono", color: "#3B82F6" }}>{bmi}</span>
+                            <span
+                              className="font-bold"
+                              style={{ fontFamily: "JetBrains Mono", color: "#3B82F6" }}
+                            >
+                              {bmi}
+                            </span>
                             <div
                               className="px-2 py-0.5 rounded text-xs font-medium"
                               style={{
-                                backgroundColor: bmiStatus.status === "good" ? "rgba(16,185,129,0.1)" :
-                                                bmiStatus.status === "normal" ? "rgba(59,130,246,0.1)" :
-                                                bmiStatus.status === "warning" ? "rgba(245,158,11,0.1)" : "rgba(239,68,68,0.1)",
-                                color: bmiStatus.status === "good" ? "#10B981" :
-                                       bmiStatus.status === "normal" ? "#3B82F6" :
-                                       bmiStatus.status === "warning" ? "#F59E0B" : "#EF4444",
+                                backgroundColor:
+                                  bmiStatus.status === "good"
+                                    ? "rgba(16,185,129,0.1)"
+                                    : bmiStatus.status === "normal"
+                                      ? "rgba(59,130,246,0.1)"
+                                      : bmiStatus.status === "warning"
+                                        ? "rgba(245,158,11,0.1)"
+                                        : "rgba(239,68,68,0.1)",
+                                color:
+                                  bmiStatus.status === "good"
+                                    ? "#10B981"
+                                    : bmiStatus.status === "normal"
+                                      ? "#3B82F6"
+                                      : bmiStatus.status === "warning"
+                                        ? "#F59E0B"
+                                        : "#EF4444",
                               }}
                             >
                               {bmiStatus.label}
@@ -349,54 +437,89 @@ export default function Dashboard() {
                         </div>
                       )}
 
-                      {healthProfile.systolic_blood_pressure && healthProfile.diastolic_blood_pressure && bpStatus && (
-                        <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: "rgba(249,115,22,0.05)" }}>
-                          <div className="flex items-center gap-2">
-                            <Activity size={16} style={{ color: "#F97316" }} />
-                            <span className="text-sm text-foreground">혈압</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold" style={{ fontFamily: "JetBrains Mono", color: "#F97316" }}>
-                              {healthProfile.systolic_blood_pressure}/{healthProfile.diastolic_blood_pressure}
-                              <span className="text-xs text-muted-foreground ml-1">mmHg</span>
-                            </span>
-                            <div
-                              className="px-2 py-0.5 rounded text-xs font-medium"
-                              style={{
-                                backgroundColor: bpStatus.status === "good" ? "rgba(16,185,129,0.1)" :
-                                                bpStatus.status === "normal" ? "rgba(59,130,246,0.1)" :
-                                                bpStatus.status === "warning" ? "rgba(245,158,11,0.1)" : "rgba(239,68,68,0.1)",
-                                color: bpStatus.status === "good" ? "#10B981" :
-                                       bpStatus.status === "normal" ? "#3B82F6" :
-                                       bpStatus.status === "warning" ? "#F59E0B" : "#EF4444",
-                              }}
-                            >
-                              {bpStatus.label}
+                      {healthProfile.systolic_blood_pressure &&
+                        healthProfile.diastolic_blood_pressure &&
+                        bpStatus && (
+                          <div
+                            className="flex items-center justify-between p-3 rounded-lg"
+                            style={{ backgroundColor: "rgba(249,115,22,0.05)" }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Activity size={16} style={{ color: "#F97316" }} />
+                              <span className="text-sm text-foreground">혈압</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="font-bold"
+                                style={{ fontFamily: "JetBrains Mono", color: "#F97316" }}
+                              >
+                                {healthProfile.systolic_blood_pressure}/
+                                {healthProfile.diastolic_blood_pressure}
+                                <span className="text-xs text-muted-foreground ml-1">mmHg</span>
+                              </span>
+                              <div
+                                className="px-2 py-0.5 rounded text-xs font-medium"
+                                style={{
+                                  backgroundColor:
+                                    bpStatus.status === "good"
+                                      ? "rgba(16,185,129,0.1)"
+                                      : bpStatus.status === "normal"
+                                        ? "rgba(59,130,246,0.1)"
+                                        : bpStatus.status === "warning"
+                                          ? "rgba(245,158,11,0.1)"
+                                          : "rgba(239,68,68,0.1)",
+                                  color:
+                                    bpStatus.status === "good"
+                                      ? "#10B981"
+                                      : bpStatus.status === "normal"
+                                        ? "#3B82F6"
+                                        : bpStatus.status === "warning"
+                                          ? "#F59E0B"
+                                          : "#EF4444",
+                                }}
+                              >
+                                {bpStatus.label}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
                       {healthProfile.fasting_blood_sugar && fbsStatus && (
-                        <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: "rgba(239,68,68,0.05)" }}>
+                        <div
+                          className="flex items-center justify-between p-3 rounded-lg"
+                          style={{ backgroundColor: "rgba(239,68,68,0.05)" }}
+                        >
                           <div className="flex items-center gap-2">
                             <Droplet size={16} style={{ color: "#EF4444" }} />
                             <span className="text-sm text-foreground">공복혈당</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold" style={{ fontFamily: "JetBrains Mono", color: "#EF4444" }}>
+                            <span
+                              className="font-bold"
+                              style={{ fontFamily: "JetBrains Mono", color: "#EF4444" }}
+                            >
                               {healthProfile.fasting_blood_sugar}
                               <span className="text-xs text-muted-foreground ml-1">mg/dL</span>
                             </span>
                             <div
                               className="px-2 py-0.5 rounded text-xs font-medium"
                               style={{
-                                backgroundColor: fbsStatus.status === "good" ? "rgba(16,185,129,0.1)" :
-                                                fbsStatus.status === "normal" ? "rgba(59,130,246,0.1)" :
-                                                fbsStatus.status === "warning" ? "rgba(245,158,11,0.1)" : "rgba(239,68,68,0.1)",
-                                color: fbsStatus.status === "good" ? "#10B981" :
-                                       fbsStatus.status === "normal" ? "#3B82F6" :
-                                       fbsStatus.status === "warning" ? "#F59E0B" : "#EF4444",
+                                backgroundColor:
+                                  fbsStatus.status === "good"
+                                    ? "rgba(16,185,129,0.1)"
+                                    : fbsStatus.status === "normal"
+                                      ? "rgba(59,130,246,0.1)"
+                                      : fbsStatus.status === "warning"
+                                        ? "rgba(245,158,11,0.1)"
+                                        : "rgba(239,68,68,0.1)",
+                                color:
+                                  fbsStatus.status === "good"
+                                    ? "#10B981"
+                                    : fbsStatus.status === "normal"
+                                      ? "#3B82F6"
+                                      : fbsStatus.status === "warning"
+                                        ? "#F59E0B"
+                                        : "#EF4444",
                               }}
                             >
                               {fbsStatus.label}
@@ -426,14 +549,20 @@ export default function Dashboard() {
                   {latestSurvey ? (
                     <div className="space-y-4">
                       {/* Survey Date */}
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground" style={{ fontFamily: "JetBrains Mono" }}>
+                      <div
+                        className="flex items-center gap-2 text-xs text-muted-foreground"
+                        style={{ fontFamily: "JetBrains Mono" }}
+                      >
                         <Clock size={12} />
                         건강설문 제출일시: {formatDateTime(latestSurvey.created_at)}
                       </div>
 
                       {/* Habits */}
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: "rgba(139,92,246,0.05)" }}>
+                        <div
+                          className="flex items-center justify-between p-3 rounded-lg"
+                          style={{ backgroundColor: "rgba(139,92,246,0.05)" }}
+                        >
                           <div className="flex items-center gap-2">
                             <Wind size={16} style={{ color: "#8B5CF6" }} />
                             <span className="text-sm text-foreground">흡연</span>
@@ -443,14 +572,20 @@ export default function Dashboard() {
                               {latestSurvey.smoking_status}
                             </span>
                             {latestSurvey.smoking_fr_per_day && (
-                              <span className="text-xs text-muted-foreground" style={{ fontFamily: "JetBrains Mono" }}>
+                              <span
+                                className="text-xs text-muted-foreground"
+                                style={{ fontFamily: "JetBrains Mono" }}
+                              >
                                 ({latestSurvey.smoking_fr_per_day}개비/일)
                               </span>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: "rgba(245,158,11,0.05)" }}>
+                        <div
+                          className="flex items-center justify-between p-3 rounded-lg"
+                          style={{ backgroundColor: "rgba(245,158,11,0.05)" }}
+                        >
                           <div className="flex items-center gap-2">
                             <Droplet size={16} style={{ color: "#F59E0B" }} />
                             <span className="text-sm text-foreground">음주</span>
@@ -460,7 +595,10 @@ export default function Dashboard() {
                               {latestSurvey.drinking_status}
                             </span>
                             {latestSurvey.drinking_fr_per_week && (
-                              <span className="text-xs text-muted-foreground" style={{ fontFamily: "JetBrains Mono" }}>
+                              <span
+                                className="text-xs text-muted-foreground"
+                                style={{ fontFamily: "JetBrains Mono" }}
+                              >
                                 ({latestSurvey.drinking_fr_per_week}회/주)
                               </span>
                             )}
@@ -468,25 +606,41 @@ export default function Dashboard() {
                         </div>
 
                         {surveyBpStatus && (
-                          <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: "rgba(249,115,22,0.05)" }}>
+                          <div
+                            className="flex items-center justify-between p-3 rounded-lg"
+                            style={{ backgroundColor: "rgba(249,115,22,0.05)" }}
+                          >
                             <div className="flex items-center gap-2">
                               <Activity size={16} style={{ color: "#F97316" }} />
                               <span className="text-sm text-foreground">측정 혈압</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="font-bold" style={{ fontFamily: "JetBrains Mono", color: "#F97316" }}>
+                              <span
+                                className="font-bold"
+                                style={{ fontFamily: "JetBrains Mono", color: "#F97316" }}
+                              >
                                 {latestSurvey.systolic_bp}/{latestSurvey.diastolic_bp}
                                 <span className="text-xs text-muted-foreground ml-1">mmHg</span>
                               </span>
                               <div
                                 className="px-2 py-0.5 rounded text-xs font-medium"
                                 style={{
-                                  backgroundColor: surveyBpStatus.status === "good" ? "rgba(16,185,129,0.1)" :
-                                                  surveyBpStatus.status === "normal" ? "rgba(59,130,246,0.1)" :
-                                                  surveyBpStatus.status === "warning" ? "rgba(245,158,11,0.1)" : "rgba(239,68,68,0.1)",
-                                  color: surveyBpStatus.status === "good" ? "#10B981" :
-                                         surveyBpStatus.status === "normal" ? "#3B82F6" :
-                                         surveyBpStatus.status === "warning" ? "#F59E0B" : "#EF4444",
+                                  backgroundColor:
+                                    surveyBpStatus.status === "good"
+                                      ? "rgba(16,185,129,0.1)"
+                                      : surveyBpStatus.status === "normal"
+                                        ? "rgba(59,130,246,0.1)"
+                                        : surveyBpStatus.status === "warning"
+                                          ? "rgba(245,158,11,0.1)"
+                                          : "rgba(239,68,68,0.1)",
+                                  color:
+                                    surveyBpStatus.status === "good"
+                                      ? "#10B981"
+                                      : surveyBpStatus.status === "normal"
+                                        ? "#3B82F6"
+                                        : surveyBpStatus.status === "warning"
+                                          ? "#F59E0B"
+                                          : "#EF4444",
                                 }}
                               >
                                 {surveyBpStatus.label}
@@ -496,12 +650,18 @@ export default function Dashboard() {
                         )}
 
                         {latestSurvey.pulse && (
-                          <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: "rgba(16,185,129,0.05)" }}>
+                          <div
+                            className="flex items-center justify-between p-3 rounded-lg"
+                            style={{ backgroundColor: "rgba(16,185,129,0.05)" }}
+                          >
                             <div className="flex items-center gap-2">
                               <Heart size={16} style={{ color: "#10B981" }} />
                               <span className="text-sm text-foreground">맥박</span>
                             </div>
-                            <span className="font-bold" style={{ fontFamily: "JetBrains Mono", color: "#10B981" }}>
+                            <span
+                              className="font-bold"
+                              style={{ fontFamily: "JetBrains Mono", color: "#10B981" }}
+                            >
                               {latestSurvey.pulse}
                               <span className="text-xs text-muted-foreground ml-1">bpm</span>
                             </span>
@@ -519,7 +679,10 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: "rgba(16,185,129,0.1)" }}>
+                      <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+                        style={{ backgroundColor: "rgba(16,185,129,0.1)" }}
+                      >
                         <Calendar size={20} style={{ color: "#10B981" }} />
                       </div>
                       <p className="text-sm text-muted-foreground mb-3">
@@ -539,7 +702,10 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="bg-white border border-border rounded-xl p-6 text-center">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: "rgba(13,59,110,0.05)" }}>
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
+                style={{ backgroundColor: "rgba(13,59,110,0.05)" }}
+              >
                 <Gauge size={20} style={{ color: "#0D3B6E" }} />
               </div>
               <p className="text-sm text-muted-foreground mb-3">
@@ -620,7 +786,10 @@ export default function Dashboard() {
           최근 활동
         </h2>
         <div className="bg-white border border-border rounded-xl p-8 text-center">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: "rgba(13,59,110,0.05)" }}>
+          <div
+            className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
+            style={{ backgroundColor: "rgba(13,59,110,0.05)" }}
+          >
             <Activity size={20} style={{ color: "#0D3B6E" }} />
           </div>
           <p className="text-sm text-muted-foreground">

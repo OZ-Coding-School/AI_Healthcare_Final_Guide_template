@@ -2,8 +2,10 @@ import { request } from "./client";
 
 const BASE = "/api/v1/annual-health-screenings";
 
-export type UrineProteinStatus = "NEGATIVE" | "TRACE" | "POSITIVE_1" | "POSITIVE_2" | "POSITIVE_3" | "POSITIVE_4";
-export type UrineGlucoseStatus = "NEGATIVE" | "TRACE" | "POSITIVE_1" | "POSITIVE_2" | "POSITIVE_3" | "POSITIVE_4";
+export type UrineProteinStatus =
+  "NEGATIVE" | "TRACE" | "POSITIVE_1" | "POSITIVE_2" | "POSITIVE_3" | "POSITIVE_4";
+export type UrineGlucoseStatus =
+  "NEGATIVE" | "TRACE" | "POSITIVE_1" | "POSITIVE_2" | "POSITIVE_3" | "POSITIVE_4";
 
 export interface AnnualHealthScreening {
   id: string;
@@ -65,15 +67,22 @@ export interface CreateAnnualHealthScreeningBody {
   is_fasting: boolean;
 }
 
-function urineStatusToKorean(status: UrineProteinStatus | UrineGlucoseStatus): string {
+export function urineStatusToKorean(status: UrineProteinStatus | UrineGlucoseStatus): string {
   switch (status) {
-    case "NEGATIVE": return "음성 (-)";
-    case "TRACE": return "미량 (±)";
-    case "POSITIVE_1": return "양성 1+ (+)";
-    case "POSITIVE_2": return "양성 2+ (++)";
-    case "POSITIVE_3": return "양성 3+ (+++)";
-    case "POSITIVE_4": return "양성 4+ (++++)";
-    default: return status;
+    case "NEGATIVE":
+      return "음성 (-)";
+    case "TRACE":
+      return "미량 (±)";
+    case "POSITIVE_1":
+      return "양성 1+ (+)";
+    case "POSITIVE_2":
+      return "양성 2+ (++)";
+    case "POSITIVE_3":
+      return "양성 3+ (+++)";
+    case "POSITIVE_4":
+      return "양성 4+ (++++)";
+    default:
+      return status;
   }
 }
 
@@ -83,12 +92,16 @@ export function getAnnualHealthScreenings(): Promise<AnnualHealthScreening[]> {
 }
 
 /** GET /api/v1/annual-health-screenings/{screening_id} */
-export function getAnnualHealthScreeningDetail(screeningId: string): Promise<AnnualHealthScreeningDetail> {
+export function getAnnualHealthScreeningDetail(
+  screeningId: string
+): Promise<AnnualHealthScreeningDetail> {
   return request<AnnualHealthScreeningDetail>(`${BASE}/${screeningId}`);
 }
 
 /** POST /api/v1/annual-health-screenings */
-export function createAnnualHealthScreening(body: CreateAnnualHealthScreeningBody): Promise<AnnualHealthScreening> {
+export function createAnnualHealthScreening(
+  body: CreateAnnualHealthScreeningBody
+): Promise<AnnualHealthScreening> {
   return request<AnnualHealthScreening>(BASE, {
     method: "POST",
     body: JSON.stringify(body),

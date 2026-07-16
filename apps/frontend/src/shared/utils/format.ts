@@ -18,7 +18,7 @@ export function formatDateTime(dateString: string | null | undefined): string {
     const minutes = String(date.getMinutes()).padStart(2, "0");
 
     return `${year}-${month}-${day} ${hours}:${minutes}`;
-  } catch (e) {
+  } catch (_e) {
     return dateString;
   }
 }
@@ -37,7 +37,7 @@ export function formatDate(dateString: string | null | undefined): string {
     const day = String(date.getDate()).padStart(2, "0");
 
     return `${year}-${month}-${day}`;
-  } catch (e) {
+  } catch (_e) {
     return dateString;
   }
 }

@@ -50,31 +50,45 @@ export interface CreateBloodSugarMeasurementBody {
   measured_at: string;
 }
 
-function measureTypeToKorean(type: BloodSugarMeasureType): string {
+export function measureTypeToKorean(type: BloodSugarMeasureType): string {
   switch (type) {
-    case "FASTING": return "공복";
-    case "BEFORE_BREAKFAST": return "아침 식전";
-    case "AFTER_BREAKFAST": return "아침 식후";
-    case "BEFORE_LUNCH": return "점심 식전";
-    case "AFTER_LUNCH": return "점심 식후";
-    case "BEFORE_DINNER": return "저녁 식전";
-    case "AFTER_DINNER": return "저녁 식후";
-    case "BEFORE_SLEEP": return "취침전";
-    case "RANDOM": return "임의측정";
-    default: return type;
+    case "FASTING":
+      return "공복";
+    case "BEFORE_BREAKFAST":
+      return "아침 식전";
+    case "AFTER_BREAKFAST":
+      return "아침 식후";
+    case "BEFORE_LUNCH":
+      return "점심 식전";
+    case "AFTER_LUNCH":
+      return "점심 식후";
+    case "BEFORE_DINNER":
+      return "저녁 식전";
+    case "AFTER_DINNER":
+      return "저녁 식후";
+    case "BEFORE_SLEEP":
+      return "취침전";
+    case "RANDOM":
+      return "임의측정";
+    default:
+      return type;
   }
 }
 
-function exerciseTypeToKorean(type: ExerciseType): string {
+export function exerciseTypeToKorean(type: ExerciseType): string {
   switch (type) {
-    case "CARDIO": return "유산소";
-    case "STRENGTH": return "근력";
-    case "BOTH": return "유산소, 근력";
-    case "NOT_APPLICABLE": return "해당사항 없음";
-    default: return type;
+    case "CARDIO":
+      return "유산소";
+    case "STRENGTH":
+      return "근력";
+    case "BOTH":
+      return "유산소, 근력";
+    case "NOT_APPLICABLE":
+      return "해당사항 없음";
+    default:
+      return type;
   }
 }
-
 
 /** GET /api/v1/blood-sugar-measurements */
 export function getBloodSugarMeasurements(params?: {
@@ -89,12 +103,16 @@ export function getBloodSugarMeasurements(params?: {
 }
 
 /** GET /api/v1/blood-sugar-measurements/{measurement_id} */
-export function getBloodSugarMeasurementDetail(measurementId: string): Promise<BloodSugarMeasurementDetail> {
+export function getBloodSugarMeasurementDetail(
+  measurementId: string
+): Promise<BloodSugarMeasurementDetail> {
   return request<BloodSugarMeasurementDetail>(`${BASE}/${measurementId}`);
 }
 
 /** POST /api/v1/blood-sugar-measurements */
-export function createBloodSugarMeasurement(body: CreateBloodSugarMeasurementBody): Promise<BloodSugarMeasurement> {
+export function createBloodSugarMeasurement(
+  body: CreateBloodSugarMeasurementBody
+): Promise<BloodSugarMeasurement> {
   return request<BloodSugarMeasurement>(BASE, {
     method: "POST",
     body: JSON.stringify(body),

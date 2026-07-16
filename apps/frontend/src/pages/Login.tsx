@@ -4,10 +4,9 @@ import { Heart, Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import { login } from "../shared/api/authApi";
 import { ApiError } from "../shared/api/client";
 import { saveUser } from "../shared/api/auth";
-import {getMyInfo} from "../shared/api/userApi";
+import { getMyInfo } from "../shared/api/userApi";
 
-const cn = (...classes: (string | boolean | undefined)[]) =>
-  classes.filter(Boolean).join(" ");
+const cn = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(" ");
 
 export default function Login() {
   const navigate = useNavigate();
@@ -28,16 +27,12 @@ export default function Login() {
       await login(form.email, form.password);
       // access_token은 login() 내부에서 저장됨
       // 사용자 정보는 별도 /me API 연동 전까지 이메일 기반으로 임시 저장
-      const loginUser = await getMyInfo()
+      const loginUser = await getMyInfo();
       saveUser({ email: loginUser.email, nickname: loginUser.nickname, name: loginUser.name });
       navigate("/app");
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(
-          err.status === 401
-            ? "이메일 또는 비밀번호가 올바르지 않습니다."
-            : err.message,
-        );
+        setError(err.status === 401 ? "이메일 또는 비밀번호가 올바르지 않습니다." : err.message);
       } else {
         setError("로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
       }
@@ -57,19 +52,36 @@ export default function Login() {
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <Heart size={16} className="text-white" />
           </div>
-          <span className="font-bold text-lg text-white" style={{ fontFamily: "Oxanium, sans-serif", letterSpacing: "0.04em" }}>
+          <span
+            className="font-bold text-lg text-white"
+            style={{ fontFamily: "Oxanium, sans-serif", letterSpacing: "0.04em" }}
+          >
             VitalAI
           </span>
         </Link>
 
         <div className="flex flex-col gap-6">
-          <div className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border w-fit"
-            style={{ fontFamily: "JetBrains Mono", color: "#10B981", borderColor: "rgba(16,185,129,0.3)", backgroundColor: "rgba(16,185,129,0.08)" }}>
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: "#10B981" }} />
+          <div
+            className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border w-fit"
+            style={{
+              fontFamily: "JetBrains Mono",
+              color: "#10B981",
+              borderColor: "rgba(16,185,129,0.3)",
+              backgroundColor: "rgba(16,185,129,0.08)",
+            }}
+          >
+            <span
+              className="w-1.5 h-1.5 rounded-full animate-pulse"
+              style={{ backgroundColor: "#10B981" }}
+            />
             AI 기반 만성질환 예방
           </div>
-          <h2 className="text-4xl font-normal text-white leading-snug" style={{ fontFamily: "Instrument Serif, serif" }}>
-            다시 돌아오신 것을<br />
+          <h2
+            className="text-4xl font-normal text-white leading-snug"
+            style={{ fontFamily: "Instrument Serif, serif" }}
+          >
+            다시 돌아오신 것을
+            <br />
             <span style={{ color: "#10B981" }}>환영합니다</span>
           </h2>
           <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
@@ -82,15 +94,32 @@ export default function Login() {
               { value: "평균 28%", label: "위험도 감소" },
               { value: "3개월", label: "평균 개선 기간" },
             ].map(({ value, label }) => (
-              <div key={label} className="p-4 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                <div className="text-lg font-bold text-white" style={{ fontFamily: "JetBrains Mono" }}>{value}</div>
-                <div className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</div>
+              <div
+                key={label}
+                className="p-4 rounded-xl"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                }}
+              >
+                <div
+                  className="text-lg font-bold text-white"
+                  style={{ fontFamily: "JetBrains Mono" }}
+                >
+                  {value}
+                </div>
+                <div className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  {label}
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="text-xs" style={{ color: "rgba(255,255,255,0.25)", fontFamily: "JetBrains Mono" }}>
+        <p
+          className="text-xs"
+          style={{ color: "rgba(255,255,255,0.25)", fontFamily: "JetBrains Mono" }}
+        >
           © 2025 VitalAI · 의료 진단을 대체하지 않습니다
         </p>
       </div>
@@ -102,21 +131,38 @@ export default function Login() {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Heart size={16} className="text-white" />
             </div>
-            <span className="font-bold text-lg text-foreground" style={{ fontFamily: "Oxanium, sans-serif", letterSpacing: "0.04em" }}>VitalAI</span>
+            <span
+              className="font-bold text-lg text-foreground"
+              style={{ fontFamily: "Oxanium, sans-serif", letterSpacing: "0.04em" }}
+            >
+              VitalAI
+            </span>
           </Link>
 
           <div className="mb-8">
             <h1 className="text-2xl font-semibold text-foreground mb-2">로그인</h1>
             <p className="text-sm text-muted-foreground">
               계정이 없으신가요?{" "}
-              <Link to="/signup" className="font-medium hover:underline" style={{ color: "#0D3B6E" }}>회원가입</Link>
+              <Link
+                to="/signup"
+                className="font-medium hover:underline"
+                style={{ color: "#0D3B6E" }}
+              >
+                회원가입
+              </Link>
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {error && (
-              <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm"
-                style={{ backgroundColor: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", color: "#DC2626" }}>
+              <div
+                className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm"
+                style={{
+                  backgroundColor: "rgba(239,68,68,0.06)",
+                  border: "1px solid rgba(239,68,68,0.2)",
+                  color: "#DC2626",
+                }}
+              >
                 <AlertCircle size={15} className="flex-shrink-0" />
                 {error}
               </div>
@@ -142,7 +188,11 @@ export default function Login() {
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-foreground">비밀번호</label>
-                <Link to="/recovery" className="text-xs font-medium hover:underline" style={{ color: "#0D3B6E" }}>
+                <Link
+                  to="/recovery"
+                  className="text-xs font-medium hover:underline"
+                  style={{ color: "#0D3B6E" }}
+                >
                   비밀번호 찾기
                 </Link>
               </div>
@@ -158,8 +208,11 @@ export default function Login() {
                   )}
                   style={{ borderColor: "rgba(13,59,110,0.2)" }}
                 />
-                <button type="button" onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
                   {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
@@ -174,37 +227,72 @@ export default function Login() {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                   </svg>
                   로그인 중...
                 </span>
               ) : (
-                <>로그인 <ArrowRight size={16} /></>
+                <>
+                  로그인 <ArrowRight size={16} />
+                </>
               )}
             </button>
           </form>
 
           <div className="flex items-center gap-3 my-6">
             <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground" style={{ fontFamily: "JetBrains Mono" }}>또는</span>
+            <span
+              className="text-xs text-muted-foreground"
+              style={{ fontFamily: "JetBrains Mono" }}
+            >
+              또는
+            </span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <button type="button" className="w-full flex items-center justify-center gap-3 py-3 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors">
+          <button
+            type="button"
+            className="w-full flex items-center justify-center gap-3 py-3 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
             <svg width="18" height="18" viewBox="0 0 18 18">
-              <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
-              <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/>
-              <path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/>
-              <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"/>
+              <path
+                fill="#4285F4"
+                d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
+              />
+              <path
+                fill="#34A853"
+                d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M3.964 10.707A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"
+              />
+              <path
+                fill="#EA4335"
+                d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"
+              />
             </svg>
             Google로 로그인
           </button>
 
           <p className="mt-8 text-xs text-center text-muted-foreground">
             로그인 시{" "}
-            <a href="#" className="underline hover:text-foreground">이용약관</a>{" "}및{" "}
-            <a href="#" className="underline hover:text-foreground">개인정보처리방침</a>에 동의하는 것으로 간주합니다.
+            <a href="#" className="underline hover:text-foreground">
+              이용약관
+            </a>{" "}
+            및{" "}
+            <a href="#" className="underline hover:text-foreground">
+              개인정보처리방침
+            </a>
+            에 동의하는 것으로 간주합니다.
           </p>
         </div>
       </div>

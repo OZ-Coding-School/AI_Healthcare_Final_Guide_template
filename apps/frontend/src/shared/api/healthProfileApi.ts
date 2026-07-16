@@ -7,8 +7,8 @@ export type Gender = "M" | "F";
 export interface HealthProfile {
   id: string;
   gender: Gender;
-  birth_date: string;       // YYYY-MM-DD
-  height: number;           // 소수점 1자리
+  birth_date: string; // YYYY-MM-DD
+  height: number; // 소수점 1자리
   weight: number;
   has_diabetes: boolean;
   has_hypertension: boolean;

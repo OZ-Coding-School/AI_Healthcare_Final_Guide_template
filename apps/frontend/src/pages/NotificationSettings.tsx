@@ -60,9 +60,7 @@ export default function NotificationSettings() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const toggleSetting = (id: string) => {
-    setSettings((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s))
-    );
+    setSettings((prev) => prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s)));
   };
 
   const handleSave = async () => {
@@ -83,7 +81,10 @@ export default function NotificationSettings() {
     <div className="p-6 lg:p-8 max-w-4xl mx-auto" style={{ fontFamily: "Outfit, sans-serif" }}>
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2" style={{ fontFamily: "JetBrains Mono" }}>
+        <div
+          className="flex items-center gap-2 text-xs text-muted-foreground mb-2"
+          style={{ fontFamily: "JetBrains Mono" }}
+        >
           <Bell size={12} />
           설정
         </div>
@@ -95,8 +96,14 @@ export default function NotificationSettings() {
 
       {/* Success Message */}
       {saveSuccess && (
-        <div className="mb-6 p-4 rounded-lg border flex items-center gap-3" style={{ backgroundColor: "rgba(16,185,129,0.1)", borderColor: "rgba(16,185,129,0.3)" }}>
-          <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#10B981" }}>
+        <div
+          className="mb-6 p-4 rounded-lg border flex items-center gap-3"
+          style={{ backgroundColor: "rgba(16,185,129,0.1)", borderColor: "rgba(16,185,129,0.3)" }}
+        >
+          <div
+            className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: "#10B981" }}
+          >
             <Check size={12} className="text-white" />
           </div>
           <span className="text-sm font-medium" style={{ color: "#10B981" }}>
@@ -117,7 +124,10 @@ export default function NotificationSettings() {
                 index !== settings.length - 1 && "border-b border-border"
               )}
             >
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${setting.color}15` }}>
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: `${setting.color}15` }}
+              >
                 <Icon size={18} style={{ color: setting.color }} />
               </div>
               <div className="flex-1 min-w-0">

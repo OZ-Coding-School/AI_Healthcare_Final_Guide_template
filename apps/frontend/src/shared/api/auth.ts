@@ -1,5 +1,5 @@
 const TOKEN_KEY = "vitalai_token";
-const USER_KEY  = "vitalai_user";
+const USER_KEY = "vitalai_user";
 
 export interface AuthUser {
   email: string;
@@ -23,8 +23,11 @@ export function saveUser(user: AuthUser) {
 export function getUser(): AuthUser | null {
   const raw = localStorage.getItem(USER_KEY);
   if (!raw) return null;
-  try { return JSON.parse(raw) as AuthUser; }
-  catch { return null; }
+  try {
+    return JSON.parse(raw) as AuthUser;
+  } catch {
+    return null;
+  }
 }
 
 export function saveAuth(token: string, user: AuthUser) {
@@ -47,9 +50,14 @@ export function isAuthenticated(): boolean {
   try {
     // JWT payload is the second segment (base64url encoded)
     const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    const payload = JSON.parse(decodeURIComponent(
-      atob(b64).split("").map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join("")
-    ));
+    const payload = JSON.parse(
+      decodeURIComponent(
+        atob(b64)
+          .split("")
+          .map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))
+          .join("")
+      )
+    );
     return typeof payload.exp === "number" ? payload.exp > Date.now() / 1000 : true;
   } catch {
     // If we can't decode (e.g. opaque token from real server), trust its presence

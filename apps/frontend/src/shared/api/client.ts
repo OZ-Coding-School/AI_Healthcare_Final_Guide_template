@@ -6,7 +6,10 @@ if (!BACKEND_URL) {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string
+  ) {
     super(message);
   }
 }
@@ -15,7 +18,7 @@ async function tryRefresh(): Promise<boolean> {
   try {
     const res = await fetch(`${BACKEND_URL}/api/v1/auth/token/refresh`, {
       method: "POST",
-      credentials: "include"
+      credentials: "include",
     });
     if (!res.ok) return false;
     const { access_token } = await res.json();

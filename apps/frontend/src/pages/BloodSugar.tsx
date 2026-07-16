@@ -1,7 +1,17 @@
 import { useState, useEffect } from "react";
 import {
-  Plus, Droplet, ChevronRight, Loader2, AlertCircle, CheckCircle, X, Eye,
-  Trash2, Calendar, Clock, Utensils, Dumbbell, Pill, FileText, Filter, ChevronDown,
+  Plus,
+  Droplet,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  X,
+  Trash2,
+  Clock,
+  Dumbbell,
+  Pill,
+  FileText,
+  ChevronDown,
 } from "lucide-react";
 import {
   getBloodSugarMeasurements,
@@ -65,16 +75,28 @@ function StatusBadge({ status }: { status: BloodSugarStatus }) {
   };
   const { bg, color, label } = config[status];
   return (
-    <span className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-      style={{ fontFamily: "JetBrains Mono", backgroundColor: bg, color }}>
+    <span
+      className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
+      style={{ fontFamily: "JetBrains Mono", backgroundColor: bg, color }}
+    >
       {label}
     </span>
   );
 }
 
 /* ── Input Field ── */
-function Field({ label, required, error, hint, children }: {
-  label: string; required?: boolean; error?: string; hint?: string; children: React.ReactNode;
+function Field({
+  label,
+  required,
+  error,
+  hint,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
+  children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -85,7 +107,8 @@ function Field({ label, required, error, hint, children }: {
       {children}
       {error && (
         <span className="text-xs flex items-center gap-1 text-red-500">
-          <AlertCircle size={11} />{error}
+          <AlertCircle size={11} />
+          {error}
         </span>
       )}
       {hint && !error && <span className="text-xs text-muted-foreground">{hint}</span>}
@@ -99,10 +122,7 @@ const INPUT = cn(
 );
 
 /* ── Measurement Form ── */
-function MeasurementForm({ onCancel, onSuccess }: {
-  onCancel: () => void;
-  onSuccess: () => void;
-}) {
+function MeasurementForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: () => void }) {
   const now = new Date();
   const [form, setForm] = useState<CreateBloodSugarMeasurementBody>({
     measure_type: "FASTING",
@@ -115,9 +135,10 @@ function MeasurementForm({ onCancel, onSuccess }: {
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState("");
 
-  const set = (k: keyof CreateBloodSugarMeasurementBody) => (v: string | number | boolean | undefined) => {
-    setForm((f) => ({ ...f, [k]: v }));
-  };
+  const set =
+    (k: keyof CreateBloodSugarMeasurementBody) => (v: string | number | boolean | undefined) => {
+      setForm((f) => ({ ...f, [k]: v }));
+    };
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -168,12 +189,14 @@ function MeasurementForm({ onCancel, onSuccess }: {
       if (form.has_exercised) {
         if (form.exercise_type) payload.exercise_type = form.exercise_type;
         if (form.exercise_minutes) payload.exercise_minutes = form.exercise_minutes;
-        if (form.minutes_since_exercise) payload.minutes_since_exercise = form.minutes_since_exercise;
+        if (form.minutes_since_exercise)
+          payload.minutes_since_exercise = form.minutes_since_exercise;
       }
 
       if (form.has_medicated) {
         if (form.medicine_name) payload.medicine_name = form.medicine_name;
-        if (form.minutes_since_medication) payload.minutes_since_medication = form.minutes_since_medication;
+        if (form.minutes_since_medication)
+          payload.minutes_since_medication = form.minutes_since_medication;
       }
 
       if (form.memo && form.memo.trim() !== "") {
@@ -183,7 +206,9 @@ function MeasurementForm({ onCancel, onSuccess }: {
       await createBloodSugarMeasurement(payload);
       onSuccess();
     } catch (err: unknown) {
-      setApiError(err instanceof Error ? err.message : "혈당 측정 기록 저장 중 오류가 발생했습니다.");
+      setApiError(
+        err instanceof Error ? err.message : "혈당 측정 기록 저장 중 오류가 발생했습니다."
+      );
     } finally {
       setSaving(false);
     }
@@ -196,9 +221,16 @@ function MeasurementForm({ onCancel, onSuccess }: {
       </h3>
 
       {apiError && (
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm mb-5"
-          style={{ backgroundColor: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", color: "#DC2626" }}>
-          <AlertCircle size={15} className="flex-shrink-0" />{apiError}
+        <div
+          className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm mb-5"
+          style={{
+            backgroundColor: "rgba(239,68,68,0.06)",
+            border: "1px solid rgba(239,68,68,0.2)",
+            color: "#DC2626",
+          }}
+        >
+          <AlertCircle size={15} className="flex-shrink-0" />
+          {apiError}
         </div>
       )}
 
@@ -212,7 +244,9 @@ function MeasurementForm({ onCancel, onSuccess }: {
           <Field label="측정 유형" required>
             <div className="grid grid-cols-2 gap-2">
               {MEASURE_TYPE_OPTIONS.map((opt) => (
-                <button key={opt.value} type="button"
+                <button
+                  key={opt.value}
+                  type="button"
                   onClick={() => set("measure_type")(opt.value)}
                   className={cn(
                     "px-3 py-2 rounded-lg text-sm font-medium border transition-all",
@@ -220,34 +254,55 @@ function MeasurementForm({ onCancel, onSuccess }: {
                       ? "border-primary text-white"
                       : "border-border text-foreground hover:border-primary/50"
                   )}
-                  style={form.measure_type === opt.value ? { backgroundColor: "#0D3B6E" } : {}}>
+                  style={form.measure_type === opt.value ? { backgroundColor: "#0D3B6E" } : {}}
+                >
                   {opt.label}
                 </button>
               ))}
             </div>
           </Field>
           <Field label="측정 일시" required error={errors.measured_at}>
-            <input type="datetime-local" value={form.measured_at}
+            <input
+              type="datetime-local"
+              value={form.measured_at}
               onChange={(e) => set("measured_at")(e.target.value)}
               className={INPUT}
-              style={{ borderColor: errors.measured_at ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.measured_at ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="혈당 수치 (mg/dL)" required error={errors.blood_glucose} hint="1~1000">
-            <input type="number" min="1" max="1000" placeholder="100"
+            <input
+              type="number"
+              min="1"
+              max="1000"
+              placeholder="100"
               value={form.blood_glucose || ""}
               onChange={(e) => set("blood_glucose")(e.target.value ? Number(e.target.value) : 0)}
               className={INPUT}
-              style={{ borderColor: errors.blood_glucose ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+              style={{
+                borderColor: errors.blood_glucose ? "#EF4444" : "rgba(13,59,110,0.2)",
+                fontFamily: "JetBrains Mono",
+              }}
+            />
           </Field>
           {form.measure_type === "POST_MEAL" && (
             <Field label="식후 경과 시간 (분)" hint="선택 사항">
-              <input type="number" min="1" placeholder="60"
+              <input
+                type="number"
+                min="1"
+                placeholder="60"
                 value={form.minutes_since_meal ?? ""}
-                onChange={(e) => set("minutes_since_meal")(e.target.value ? Number(e.target.value) : undefined)}
+                onChange={(e) =>
+                  set("minutes_since_meal")(e.target.value ? Number(e.target.value) : undefined)
+                }
                 className={INPUT}
-                style={{ borderColor: "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+                style={{ borderColor: "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }}
+              />
             </Field>
           )}
         </div>
@@ -260,8 +315,13 @@ function MeasurementForm({ onCancel, onSuccess }: {
           <h4 className="font-semibold text-foreground text-sm">운동 여부</h4>
         </div>
         <div className="flex gap-2 mb-3">
-          {[{ v: true, l: "운동함" }, { v: false, l: "안함" }].map(({ v, l }) => (
-            <button key={String(v)} type="button"
+          {[
+            { v: true, l: "운동함" },
+            { v: false, l: "안함" },
+          ].map(({ v, l }) => (
+            <button
+              key={String(v)}
+              type="button"
               onClick={() => {
                 set("has_exercised")(v);
                 if (!v) {
@@ -276,7 +336,8 @@ function MeasurementForm({ onCancel, onSuccess }: {
                   ? "border-primary text-white"
                   : "border-border text-foreground hover:border-primary/50"
               )}
-              style={form.has_exercised === v ? { backgroundColor: "#0D3B6E" } : {}}>
+              style={form.has_exercised === v ? { backgroundColor: "#0D3B6E" } : {}}
+            >
               {l}
             </button>
           ))}
@@ -284,29 +345,51 @@ function MeasurementForm({ onCancel, onSuccess }: {
         {form.has_exercised && (
           <div className="grid sm:grid-cols-3 gap-4">
             <Field label="운동 유형" required error={errors.exercise_type}>
-              <select value={form.exercise_type ?? ""}
+              <select
+                value={form.exercise_type ?? ""}
                 onChange={(e) => set("exercise_type")(e.target.value as ExerciseType)}
                 className={INPUT}
-                style={{ borderColor: errors.exercise_type ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }}>
+                style={{
+                  borderColor: errors.exercise_type ? "#EF4444" : "rgba(13,59,110,0.2)",
+                  fontFamily: "JetBrains Mono",
+                }}
+              >
                 <option value="">선택</option>
                 {EXERCISE_TYPE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
             </Field>
             <Field label="운동 시간 (분)" required error={errors.exercise_minutes}>
-              <input type="number" min="1" placeholder="30"
+              <input
+                type="number"
+                min="1"
+                placeholder="30"
                 value={form.exercise_minutes ?? ""}
-                onChange={(e) => set("exercise_minutes")(e.target.value ? Number(e.target.value) : undefined)}
+                onChange={(e) =>
+                  set("exercise_minutes")(e.target.value ? Number(e.target.value) : undefined)
+                }
                 className={INPUT}
-                style={{ borderColor: errors.exercise_minutes ? "#EF4444" : "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+                style={{
+                  borderColor: errors.exercise_minutes ? "#EF4444" : "rgba(13,59,110,0.2)",
+                  fontFamily: "JetBrains Mono",
+                }}
+              />
             </Field>
             <Field label="운동 후 경과 시간 (분)" hint="선택">
-              <input type="number" min="1" placeholder="20"
+              <input
+                type="number"
+                min="1"
+                placeholder="20"
                 value={form.minutes_since_exercise ?? ""}
-                onChange={(e) => set("minutes_since_exercise")(e.target.value ? Number(e.target.value) : undefined)}
+                onChange={(e) =>
+                  set("minutes_since_exercise")(e.target.value ? Number(e.target.value) : undefined)
+                }
                 className={INPUT}
-                style={{ borderColor: "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+                style={{ borderColor: "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }}
+              />
             </Field>
           </div>
         )}
@@ -319,8 +402,13 @@ function MeasurementForm({ onCancel, onSuccess }: {
           <h4 className="font-semibold text-foreground text-sm">복약 여부</h4>
         </div>
         <div className="flex gap-2 mb-3">
-          {[{ v: true, l: "복약함" }, { v: false, l: "안함" }].map(({ v, l }) => (
-            <button key={String(v)} type="button"
+          {[
+            { v: true, l: "복약함" },
+            { v: false, l: "안함" },
+          ].map(({ v, l }) => (
+            <button
+              key={String(v)}
+              type="button"
               onClick={() => {
                 set("has_medicated")(v);
                 if (!v) {
@@ -334,7 +422,8 @@ function MeasurementForm({ onCancel, onSuccess }: {
                   ? "border-primary text-white"
                   : "border-border text-foreground hover:border-primary/50"
               )}
-              style={form.has_medicated === v ? { backgroundColor: "#0D3B6E" } : {}}>
+              style={form.has_medicated === v ? { backgroundColor: "#0D3B6E" } : {}}
+            >
               {l}
             </button>
           ))}
@@ -342,18 +431,29 @@ function MeasurementForm({ onCancel, onSuccess }: {
         {form.has_medicated && (
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label="약 이름" required error={errors.medicine_name}>
-              <input type="text" placeholder="예: 메트포르민"
+              <input
+                type="text"
+                placeholder="예: 메트포르민"
                 value={form.medicine_name ?? ""}
                 onChange={(e) => set("medicine_name")(e.target.value)}
                 className={INPUT}
-                style={{ borderColor: errors.medicine_name ? "#EF4444" : "rgba(13,59,110,0.2)" }} />
+                style={{ borderColor: errors.medicine_name ? "#EF4444" : "rgba(13,59,110,0.2)" }}
+              />
             </Field>
             <Field label="복약 후 경과 시간 (분)" hint="선택">
-              <input type="number" min="1" placeholder="120"
+              <input
+                type="number"
+                min="1"
+                placeholder="120"
                 value={form.minutes_since_medication ?? ""}
-                onChange={(e) => set("minutes_since_medication")(e.target.value ? Number(e.target.value) : undefined)}
+                onChange={(e) =>
+                  set("minutes_since_medication")(
+                    e.target.value ? Number(e.target.value) : undefined
+                  )
+                }
                 className={INPUT}
-                style={{ borderColor: "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }} />
+                style={{ borderColor: "rgba(13,59,110,0.2)", fontFamily: "JetBrains Mono" }}
+              />
             </Field>
           </div>
         )}
@@ -366,25 +466,33 @@ function MeasurementForm({ onCancel, onSuccess }: {
           <h4 className="font-semibold text-foreground text-sm">메모</h4>
         </div>
         <Field label="참고 메모" hint="최대 1000자">
-          <textarea placeholder="예: 점심 식후 가벼운 산책"
+          <textarea
+            placeholder="예: 점심 식후 가벼운 산책"
             value={form.memo ?? ""}
             onChange={(e) => set("memo")(e.target.value)}
             rows={3}
             maxLength={1000}
             className={INPUT}
-            style={{ borderColor: "rgba(13,59,110,0.2)", resize: "vertical" }} />
+            style={{ borderColor: "rgba(13,59,110,0.2)", resize: "vertical" }}
+          />
         </Field>
       </div>
 
       {/* Actions */}
       <div className="flex gap-3 justify-end">
-        <button type="button" onClick={onCancel}
-          className="flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-medium text-muted-foreground border border-border hover:bg-muted transition-colors">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-medium text-muted-foreground border border-border hover:bg-muted transition-colors"
+        >
           <X size={14} /> 취소
         </button>
-        <button type="submit" disabled={saving}
+        <button
+          type="submit"
+          disabled={saving}
           className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60 transition-opacity"
-          style={{ backgroundColor: "#10B981" }}>
+          style={{ backgroundColor: "#10B981" }}
+        >
           {saving ? (
             <span className="flex items-center gap-2">
               <Loader2 size={15} className="animate-spin" />
@@ -476,27 +584,43 @@ export default function BloodSugar() {
       {/* Header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2" style={{ fontFamily: "JetBrains Mono" }}>
+          <div
+            className="flex items-center gap-2 text-xs text-muted-foreground mb-2"
+            style={{ fontFamily: "JetBrains Mono" }}
+          >
             건강정보 기록 / 혈당 측정 기록
           </div>
           <h1 className="text-2xl font-semibold text-foreground mb-1">혈당 측정 기록</h1>
-          <p className="text-sm text-muted-foreground">당뇨병 관리를 위한 일별 혈당 측정 기록을 관리합니다.</p>
+          <p className="text-sm text-muted-foreground">
+            당뇨병 관리를 위한 일별 혈당 측정 기록을 관리합니다.
+          </p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
+        <button
+          onClick={() => setShowForm(!showForm)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90 flex-shrink-0"
-          style={{ backgroundColor: "#0D3B6E" }}>
+          style={{ backgroundColor: "#0D3B6E" }}
+        >
           <Plus size={15} /> 측정 기록 추가
         </button>
       </div>
 
       {/* Form */}
-      {showForm && <MeasurementForm onCancel={() => setShowForm(false)} onSuccess={handleSuccess} />}
+      {showForm && (
+        <MeasurementForm onCancel={() => setShowForm(false)} onSuccess={handleSuccess} />
+      )}
 
       {/* Error */}
       {!showForm && error && (
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm mb-6"
-          style={{ backgroundColor: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", color: "#DC2626" }}>
-          <AlertCircle size={15} className="flex-shrink-0" />{error}
+        <div
+          className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm mb-6"
+          style={{
+            backgroundColor: "rgba(239,68,68,0.06)",
+            border: "1px solid rgba(239,68,68,0.2)",
+            color: "#DC2626",
+          }}
+        >
+          <AlertCircle size={15} className="flex-shrink-0" />
+          {error}
         </div>
       )}
 
@@ -524,24 +648,33 @@ export default function BloodSugar() {
             const isExpanded = expandedId === measurement.id;
             const detail = detailsMap[measurement.id];
             const isLoadingDetail = loadingDetails[measurement.id];
-            const status = detail ? getBloodSugarStatus(detail.blood_glucose, detail.measure_type) : undefined;
+            const status = detail
+              ? getBloodSugarStatus(detail.blood_glucose, detail.measure_type)
+              : undefined;
 
             return (
-              <div key={measurement.id}
-                className="bg-white border border-border rounded-xl overflow-hidden transition-shadow hover:shadow-sm">
+              <div
+                key={measurement.id}
+                className="bg-white border border-border rounded-xl overflow-hidden transition-shadow hover:shadow-sm"
+              >
                 {/* Card Header */}
                 <button
                   onClick={() => handleToggleCard(measurement.id)}
                   className="w-full px-5 py-4 flex items-center justify-between text-left"
-                  disabled={isLoadingDetail}>
+                  disabled={isLoadingDetail}
+                >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-medium flex-shrink-0"
-                      style={{ backgroundColor: "rgba(13,59,110,0.07)", color: "#0D3B6E" }}>
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-medium flex-shrink-0"
+                      style={{ backgroundColor: "rgba(13,59,110,0.07)", color: "#0D3B6E" }}
+                    >
                       <Droplet size={16} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground text-m">{measurement.measure_type} 혈당 기록</span>
+                        <span className="font-semibold text-foreground text-m">
+                          {measurement.measure_type} 혈당 기록
+                        </span>
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
                         - 측정일시: {formatDateTime(measurement.measured_at)}
@@ -572,7 +705,10 @@ export default function BloodSugar() {
                           <div className="text-xs font-semibold text-foreground">혈당 수치</div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-2xl font-bold text-foreground" style={{ fontFamily: "JetBrains Mono" }}>
+                          <span
+                            className="text-2xl font-bold text-foreground"
+                            style={{ fontFamily: "JetBrains Mono" }}
+                          >
                             {detail.blood_glucose}
                           </span>
                           <span className="text-sm text-muted-foreground">mg/dL</span>
@@ -587,7 +723,10 @@ export default function BloodSugar() {
                             <Clock size={12} style={{ color: "#0D3B6E" }} />
                             <div className="text-xs text-muted-foreground">식후 경과 시간</div>
                           </div>
-                          <div className="text-sm text-foreground font-medium" style={{ fontFamily: "JetBrains Mono" }}>
+                          <div
+                            className="text-sm text-foreground font-medium"
+                            style={{ fontFamily: "JetBrains Mono" }}
+                          >
                             {detail.minutes_since_meal}분
                           </div>
                         </div>
@@ -619,7 +758,9 @@ export default function BloodSugar() {
                             <Pill size={14} style={{ color: "#0D3B6E" }} />
                             <div className="text-xs font-semibold text-foreground">복약 정보</div>
                           </div>
-                          <div className="text-sm text-foreground font-medium">{detail.medicine_name}</div>
+                          <div className="text-sm text-foreground font-medium">
+                            {detail.medicine_name}
+                          </div>
                           {detail.minutes_since_medication && (
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
                               <Clock size={11} style={{ color: "#0D3B6E" }} />
@@ -636,7 +777,9 @@ export default function BloodSugar() {
                             <FileText size={14} style={{ color: "#0D3B6E" }} />
                             <div className="text-xs font-semibold text-foreground">메모</div>
                           </div>
-                          <div className="text-sm text-foreground whitespace-pre-wrap">{detail.memo}</div>
+                          <div className="text-sm text-foreground whitespace-pre-wrap">
+                            {detail.memo}
+                          </div>
                         </div>
                       )}
 
@@ -647,7 +790,8 @@ export default function BloodSugar() {
                             e.stopPropagation();
                             handleDelete(measurement.id);
                           }}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                        >
                           <Trash2 size={13} />
                           삭제
                         </button>
