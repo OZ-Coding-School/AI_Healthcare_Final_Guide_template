@@ -17,8 +17,32 @@ on:
       - 'hotfix/*'
 
 jobs:
-  lint:
+  changes:
     runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      ai: ${{ steps.filter.outputs.ai }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'apps/backend/**'
+            ai:
+              - 'apps/ai/**'
+            frontend:
+              - 'apps/frontend/**'
+
+  backend-lint:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -42,8 +66,70 @@ jobs:
       - name: Run Ruff Format Check
         run: uv run ruff format . --check
 
-  test:
+  ai-lint:
+    needs: changes
+    if: needs.changes.outputs.ai == 'true'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ai
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run Ruff Check (Linting)
+        run: uv run ruff check .
+
+      - name: Run Ruff Format Check
+        run: uv run ruff format . --check
+
+  frontend-lint:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Prettier Check
+        run: npx prettier --check "src/**/*.{ts,tsx,css,md}"
+
+  backend-test:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
     services:
       postgres:
         image: postgres:17
@@ -68,7 +154,7 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: uv sync --group app --frozen
+        run: uv sync --frozen
 
       - name: Check if tests exist
         id: check_tests
@@ -83,5 +169,5 @@ jobs:
       - name: Run Tests with Coverage
         if: steps.check_tests.outputs.has_tests == 'true'
         run: |
-          uv run coverage run -m pytest app
+          uv run coverage run -m pytest tests
           uv run coverage report -m

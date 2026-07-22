@@ -1,0 +1,170 @@
+from collections.abc import Iterable
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+from tortoise import BaseDBAsyncClient, fields
+from uuid6 import uuid7
+
+from ..core.enums import (
+    BloodSugarMeasurementType,
+    DrinkingFrequency,
+    ExerciseType,
+    Gender,
+    HabitStatus,
+    UrineGlucoseStatus,
+    UrineProteinStatus,
+)
+from ..core.utils.common import get_enum_max_length
+from .base import TimestampModel
+
+if TYPE_CHECKING:
+    from .user_models import User
+
+
+class HealthProfile(TimestampModel):
+    id = fields.UUIDField(primary_key=True, default=uuid7)
+    user: fields.OneToOneRelation["User"] = fields.OneToOneField("models.User", related_name="profile")
+    gender = fields.CharEnumField(enum_type=Gender, max_length=get_enum_max_length(Gender))
+    birth_date = fields.DateField()
+    height = fields.DecimalField(max_digits=4, decimal_places=1)
+    weight = fields.DecimalField(max_digits=4, decimal_places=1)
+    has_diabetes = fields.BooleanField()
+    has_hypertension = fields.BooleanField()
+
+    class Meta:
+        table = "health_profiles"
+
+
+class MonthlyHealthSurvey(TimestampModel):
+    id = fields.UUIDField(primary_key=True, default=uuid7)
+    user: fields.ForeignKeyRelation["User"] = fields.ForeignKeyField(
+        "models.User", related_name="monthly_health_surveys"
+    )
+    title = fields.CharField(max_length=255, description="월간 건강 조사 제목")
+    # 흡연 데이터
+    smoking_status = fields.CharEnumField(
+        enum_type=HabitStatus,
+        max_length=get_enum_max_length(HabitStatus),
+    )
+    smoking_fr_per_day = fields.SmallIntField(null=True, description="일당 흡연 빈도")
+    # 음주 데이터
+    drinking_status = fields.CharEnumField(
+        enum_type=HabitStatus, max_length=get_enum_max_length(HabitStatus), description="음주상태"
+    )
+    drinking_frequency = fields.CharEnumField(
+        enum_type=DrinkingFrequency, max_length=get_enum_max_length(DrinkingFrequency), description="음주 빈도"
+    )
+    drinking_amount_per_session = fields.SmallIntField(null=True, description="회당 음주량(잔)")
+    # 혈압 데이터
+    systolic_bp = fields.SmallIntField(description="수축기 혈압(최고 혈압, mmHg)")
+    diastolic_bp = fields.SmallIntField(description="이완기 혈압(최저 혈압, mmHg)")
+
+    class Meta:
+        table = "monthly_health_surveys"
+
+    async def save(
+        self,
+        using_db: BaseDBAsyncClient | None = None,
+        update_fields: Iterable[str] | None = None,
+        force_create: bool = False,
+        force_update: bool = False,
+    ) -> None:
+        if self.title is None:
+            now = self.created_at or datetime.now()
+            self.title = f"{now.strftime('%Y년 %m월')} 건강 설문 조사"
+
+        return await super().save(
+            using_db=using_db,
+            update_fields=update_fields,
+            force_create=force_create,
+            force_update=force_update,
+        )
+
+
+class BloodSugarMeasurement(TimestampModel):
+    id = fields.UUIDField(primary_key=True, default=uuid7)
+    user: fields.ForeignKeyRelation["User"] = fields.ForeignKeyField(
+        "models.User", related_name="blood_sugar_measurements"
+    )
+    measure_type = fields.CharEnumField(
+        enum_type=BloodSugarMeasurementType,
+        max_length=get_enum_max_length(BloodSugarMeasurementType),
+        description="혈당 수치 테스트 유형",
+    )
+    blood_glucose = fields.SmallIntField(description="혈당 수치(mg/dL)")
+    minutes_since_meal = fields.SmallIntField(null=True, description="식후 경과 시간(분)")
+    has_exercised = fields.BooleanField(description="운동 여부")
+    exercise_type = fields.CharEnumField(
+        enum_type=ExerciseType,
+        max_length=get_enum_max_length(ExerciseType),
+        null=True,
+        description="운동 유형",
+    )
+    exercise_minutes = fields.SmallIntField(null=True, description="운동 시간(분)")
+    minutes_since_exercise = fields.SmallIntField(null=True, description="운동 후 경과 시간(분)")
+    has_medicated = fields.BooleanField(description="복약 여부")
+    medicine_name = fields.CharField(max_length=100, null=True, description="복용한 약물명")
+    minutes_since_medication = fields.SmallIntField(null=True, description="복약 후 경과 시간(분)")
+    memo = fields.TextField(null=True, max_length=500, description="참고사항(ex. 어떤걸 먹었고, 어떤 운동을 했는지 등)")
+    measured_at = fields.DatetimeField(description="측정시간")
+
+    class Meta:
+        table = "blood_sugar_measurements"
+
+
+class AnnualHealthScreening(TimestampModel):
+    id = fields.UUIDField(primary_key=True, default=uuid7)
+    user: fields.ForeignKeyRelation["User"] = fields.ForeignKeyField(
+        "models.User", related_name="annual_health_screenings"
+    )
+    title = fields.CharField(max_length=50, description="검진 제목(자동생성, ex. 2023년 1월 20일 건강검진)")
+    height = fields.DecimalField(max_digits=4, decimal_places=1, description="키(cm)")
+    weight = fields.DecimalField(max_digits=4, decimal_places=1, description="체중(kg)")
+    bmi = fields.DecimalField(max_digits=4, decimal_places=1, description="BMI")
+    waist_circumference = fields.DecimalField(max_digits=4, decimal_places=1, description="허리둘레(cm)")
+    sbp = fields.SmallIntField(description="수축기 혈압(mmHg)")
+    dbp = fields.SmallIntField(description="이완기 혈압(mmHg)")
+    fbs = fields.SmallIntField(description="공복혈당(mg/dL)")
+    hba1c = fields.DecimalField(max_digits=3, decimal_places=1, description="당화혈색소(HbA1c, %)")
+    triglyceride = fields.SmallIntField(description="혈액 속 중성지방(mg/dL)")
+    ldl = fields.SmallIntField(description="LDL(저밀도 지단백) 콜레스테롤(mg/dL)")
+    hdl = fields.SmallIntField(description="HDL(고밀도 지단백) 콜레스테롤(mg/dL)")
+    total_cholesterol = fields.SmallIntField(description="총콜레스테롤(mg/dL)")
+    ast = fields.SmallIntField(description="아스파르테이트 아미노전이효소(AST)(IU/L)")
+    alt = fields.SmallIntField(description="알라닌 아미노전이효소(ALT)(IU/L)")
+    creatinine = fields.DecimalField(max_digits=3, decimal_places=2, description="혈중 크레아티닌(mg/dL)")
+    urine_protein = fields.CharEnumField(
+        enum_type=UrineProteinStatus,
+        max_length=get_enum_max_length(UrineProteinStatus),
+        description="요단백 수치 검사 결과",
+    )
+    urine_glucose = fields.CharEnumField(
+        enum_type=UrineGlucoseStatus,
+        max_length=get_enum_max_length(UrineGlucoseStatus),
+        description="요당 수치 검사 결과",
+    )
+    family_history_diabetes = fields.BooleanField(description="직계 가족의 당뇨병 병력 여부")
+    family_history_hypertension = fields.BooleanField(description="직계 가족의 고혈압 병력 여부")
+
+    screening_at = fields.DateField(description="검진 날짜")
+    is_fasting = fields.BooleanField(description="공복 검사 여부")
+
+    class Meta:
+        table = "annual_health_screenings"
+
+    async def save(
+        self,
+        using_db: BaseDBAsyncClient | None = None,
+        update_fields: Iterable[str] | None = None,
+        force_create: bool = False,
+        force_update: bool = False,
+    ) -> None:
+        if self.title is None and self.screening_at:
+            self.title = f"{self.screening_at.strftime('%Y년 %m월 %d일')} 건강검진"
+
+        return await super().save(
+            using_db=using_db,
+            update_fields=update_fields,
+            force_create=force_create,
+            force_update=force_update,
+        )

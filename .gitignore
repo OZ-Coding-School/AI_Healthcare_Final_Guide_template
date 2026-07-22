@@ -13,3 +13,6 @@ wheels/
 *.coverage
 .coverage.*
 .junie/
+node_modules/
+apps/ai/data/
+apps/ai/models/
