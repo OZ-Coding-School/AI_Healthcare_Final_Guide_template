@@ -2,7 +2,7 @@ from httpx import ASGITransport, AsyncClient
 from starlette import status
 from tortoise.contrib.test import TestCase
 
-from app.core.enums import HabitStatus
+from app.core.enums import DrinkingFrequency, HabitStatus
 from app.core.utils.jwt.provider import JWTProvider
 from app.models.health_profiles import MonthlyHealthSurvey
 from app.models.user_models import User
@@ -37,9 +37,9 @@ class TestHealthSurveyAPI(TestCase):
         survey_data = {
             "smoking_status": HabitStatus.NEVER,
             "drinking_status": HabitStatus.NEVER,
+            "drinking_frequency": DrinkingFrequency.NOT_APPLICABLE,
             "systolic_bp": 120,
             "diastolic_bp": 80,
-            "pulse": 70,
         }
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -58,6 +58,7 @@ class TestHealthSurveyAPI(TestCase):
         survey_data = {
             "smoking_status": HabitStatus.NEVER,
             "drinking_status": HabitStatus.NEVER,
+            "drinking_frequency": DrinkingFrequency.NOT_APPLICABLE,
             "systolic_bp": 120,
             "diastolic_bp": 80,
         }
@@ -79,6 +80,7 @@ class TestHealthSurveyAPI(TestCase):
         survey_data_smoking = {
             "smoking_status": HabitStatus.CURRENT,
             "drinking_status": HabitStatus.NEVER,
+            "drinking_frequency": DrinkingFrequency.NOT_APPLICABLE,
             "systolic_bp": 120,
             "diastolic_bp": 80,
         }
@@ -98,7 +100,6 @@ class TestHealthSurveyAPI(TestCase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.post(self.api_path, json=survey_data_drinking, headers=headers)
             assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-            assert "drinking_fr_per_week, drinking_amount_per_session are required." in response.text
 
     async def test_create_monthly_health_survey_normalization(self):
         user = await self._create_test_user("normalization@example.com", "01011110000")
@@ -109,7 +110,7 @@ class TestHealthSurveyAPI(TestCase):
             "smoking_status": HabitStatus.NEVER,
             "smoking_fr_per_day": 10,
             "drinking_status": HabitStatus.NEVER,
-            "drinking_fr_per_week": 3,
+            "drinking_frequency": DrinkingFrequency.NOT_APPLICABLE,
             "drinking_amount_per_session": 5,
             "systolic_bp": 120,
             "diastolic_bp": 80,
@@ -124,7 +125,6 @@ class TestHealthSurveyAPI(TestCase):
         # DB에서 정규화 여부 확인
         survey = await MonthlyHealthSurvey.get(user=user)
         assert survey.smoking_fr_per_day is None
-        assert survey.drinking_fr_per_week is None
         assert survey.drinking_amount_per_session is None
 
     async def test_create_monthly_health_survey_all_fields_success(self):
@@ -135,7 +135,7 @@ class TestHealthSurveyAPI(TestCase):
             "smoking_status": HabitStatus.CURRENT,
             "smoking_fr_per_day": 10,
             "drinking_status": HabitStatus.CURRENT,
-            "drinking_fr_per_week": 2,
+            "drinking_frequency": DrinkingFrequency.LESS_THAN_MONTHLY,
             "drinking_amount_per_session": 3,
             "systolic_bp": 130,
             "diastolic_bp": 85,
@@ -149,7 +149,7 @@ class TestHealthSurveyAPI(TestCase):
 
         survey = await MonthlyHealthSurvey.get(user=user)
         assert survey.smoking_fr_per_day == 10
-        assert survey.drinking_fr_per_week == 2
+        assert survey.drinking_frequency == DrinkingFrequency.LESS_THAN_MONTHLY
         assert survey.drinking_amount_per_session == 3
 
     async def test_get_monthly_health_survey_list(self):
@@ -160,6 +160,7 @@ class TestHealthSurveyAPI(TestCase):
             user=user,
             smoking_status=HabitStatus.NEVER,
             drinking_status=HabitStatus.NEVER,
+            drinking_frequency=DrinkingFrequency.NOT_APPLICABLE,
             systolic_bp=120,
             diastolic_bp=80,
         )
@@ -183,6 +184,7 @@ class TestHealthSurveyAPI(TestCase):
             user=user,
             smoking_status=HabitStatus.NEVER,
             drinking_status=HabitStatus.NEVER,
+            drinking_frequency=DrinkingFrequency.NOT_APPLICABLE,
             systolic_bp=120,
             diastolic_bp=80,
         )
@@ -220,6 +222,7 @@ class TestHealthSurveyAPI(TestCase):
             user=user,
             smoking_status=HabitStatus.NEVER,
             drinking_status=HabitStatus.NEVER,
+            drinking_frequency=DrinkingFrequency.NOT_APPLICABLE,
             systolic_bp=120,
             diastolic_bp=80,
         )
@@ -255,6 +258,7 @@ class TestHealthSurveyAPI(TestCase):
             user=user2,
             smoking_status=HabitStatus.NEVER,
             drinking_status=HabitStatus.NEVER,
+            drinking_frequency=DrinkingFrequency.NOT_APPLICABLE,
             systolic_bp=120,
             diastolic_bp=80,
         )

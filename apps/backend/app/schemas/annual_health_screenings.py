@@ -22,7 +22,6 @@ class AnnualHealthScreeningCreateRequest(BaseModel):
     waist_circumference: WaistCircumference
     sbp: PositiveInt
     dbp: PositiveInt
-    pulse: PositiveInt
     fbs: PositiveInt
     hba1c: HbA1c
     triglyceride: PositiveInt
@@ -31,8 +30,6 @@ class AnnualHealthScreeningCreateRequest(BaseModel):
     total_cholesterol: PositiveInt
     ast: PositiveInt
     alt: PositiveInt
-    gamma_gtp: PositiveInt
-    egfr: PositiveInt
     creatinine: Creatinine
     urine_protein: UrineProteinStatus
     urine_glucose: UrineGlucoseStatus
@@ -56,7 +53,6 @@ class AnnualHealthScreeningResponse(AnnualHealthScreeningListResponse):
     waist_circumference: WaistCircumference
     sbp: PositiveInt
     dbp: PositiveInt
-    pulse: PositiveInt
     fbs: PositiveInt
     hba1c: HbA1c
     triglyceride: PositiveInt
@@ -65,8 +61,6 @@ class AnnualHealthScreeningResponse(AnnualHealthScreeningListResponse):
     total_cholesterol: PositiveInt
     ast: PositiveInt
     alt: PositiveInt
-    gamma_gtp: PositiveInt
-    egfr: PositiveInt
     creatinine: Creatinine
     urine_protein: UrineProteinStatus
     urine_glucose: UrineGlucoseStatus

@@ -3,7 +3,7 @@ from uuid import UUID
 
 from tortoise.expressions import Q
 
-from app.core.enums import HabitStatus
+from app.core.enums import DrinkingFrequency, HabitStatus
 from app.models.health_profiles import MonthlyHealthSurvey
 
 
@@ -14,22 +14,20 @@ class MonthlyHealthSurveyRepository:
         smoking_status: HabitStatus,
         smoking_fr_per_day: int | None,
         drinking_status: HabitStatus,
-        drinking_fr_per_week: int | None,
+        drinking_frequency: DrinkingFrequency,
         drinking_amount_per_session: int | None,
         systolic_bp: int,
         diastolic_bp: int,
-        pulse: int | None = None,
     ) -> MonthlyHealthSurvey:
         return await MonthlyHealthSurvey.create(
             user_id=user_id,
             smoking_status=smoking_status,
             smoking_fr_per_day=smoking_fr_per_day,
             drinking_status=drinking_status,
-            drinking_fr_per_week=drinking_fr_per_week,
+            drinking_frequency=drinking_frequency,
             drinking_amount_per_session=drinking_amount_per_session,
             systolic_bp=systolic_bp,
             diastolic_bp=diastolic_bp,
-            pulse=pulse,
         )
 
     async def get_list(

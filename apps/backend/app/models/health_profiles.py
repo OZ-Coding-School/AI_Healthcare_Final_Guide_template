@@ -7,6 +7,7 @@ from uuid6 import uuid7
 
 from ..core.enums import (
     BloodSugarMeasurementType,
+    DrinkingFrequency,
     ExerciseType,
     Gender,
     HabitStatus,
@@ -50,12 +51,13 @@ class MonthlyHealthSurvey(TimestampModel):
     drinking_status = fields.CharEnumField(
         enum_type=HabitStatus, max_length=get_enum_max_length(HabitStatus), description="음주상태"
     )
-    drinking_fr_per_week = fields.SmallIntField(null=True, description="주당 음주 빈도")
+    drinking_frequency = fields.CharEnumField(
+        enum_type=DrinkingFrequency, max_length=get_enum_max_length(DrinkingFrequency), description="음주 빈도"
+    )
     drinking_amount_per_session = fields.SmallIntField(null=True, description="회당 음주량(잔)")
-    # 혈압, 맥박 데이터
+    # 혈압 데이터
     systolic_bp = fields.SmallIntField(description="수축기 혈압(최고 혈압, mmHg)")
     diastolic_bp = fields.SmallIntField(description="이완기 혈압(최저 혈압, mmHg)")
-    pulse = fields.SmallIntField(null=True, description="맥박수(분당 횟수)")
 
     class Meta:
         table = "monthly_health_surveys"
@@ -122,7 +124,6 @@ class AnnualHealthScreening(TimestampModel):
     waist_circumference = fields.DecimalField(max_digits=4, decimal_places=1, description="허리둘레(cm)")
     sbp = fields.SmallIntField(description="수축기 혈압(mmHg)")
     dbp = fields.SmallIntField(description="이완기 혈압(mmHg)")
-    pulse = fields.SmallIntField(description="맥박(분당 횟수)")
     fbs = fields.SmallIntField(description="공복혈당(mg/dL)")
     hba1c = fields.DecimalField(max_digits=3, decimal_places=1, description="당화혈색소(HbA1c, %)")
     triglyceride = fields.SmallIntField(description="혈액 속 중성지방(mg/dL)")
@@ -131,8 +132,6 @@ class AnnualHealthScreening(TimestampModel):
     total_cholesterol = fields.SmallIntField(description="총콜레스테롤(mg/dL)")
     ast = fields.SmallIntField(description="아스파르테이트 아미노전이효소(AST)(IU/L)")
     alt = fields.SmallIntField(description="알라닌 아미노전이효소(ALT)(IU/L)")
-    gamma_gtp = fields.SmallIntField(description="γ-GTP(IU/L)")
-    egfr = fields.SmallIntField(description="추정 사구체여과율(eGFR), 신장 기능을 평가하는 지표(mL/min/1.73㎡)")
     creatinine = fields.DecimalField(max_digits=3, decimal_places=2, description="혈중 크레아티닌(mg/dL)")
     urine_protein = fields.CharEnumField(
         enum_type=UrineProteinStatus,
