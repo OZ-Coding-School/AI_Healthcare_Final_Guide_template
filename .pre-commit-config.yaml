@@ -22,7 +22,7 @@ repos:
         name: backend-ruff
         files: ^apps/backend/
         args: [ --fix ]
-      - id: ruff
+      - id: ruff-format
         name: ai-ruff-format
         files: ^apps/ai/
       - id: ruff
