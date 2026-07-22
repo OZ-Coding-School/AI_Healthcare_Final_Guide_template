@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, PositiveInt, field_serializer, model_validator
 
-from app.core.enums import HabitStatus
+from app.core.enums import DrinkingFrequency, HabitStatus
 from app.schemas.base import BaseSerializerModel
 from app.schemas.mixins import ConditionalFieldValidationMixin
 
@@ -13,11 +13,10 @@ class MonthlyHealthSurveyCreateRequest(BaseModel, ConditionalFieldValidationMixi
     smoking_status: HabitStatus
     smoking_fr_per_day: PositiveInt | None = None
     drinking_status: HabitStatus
-    drinking_fr_per_week: PositiveInt | None = None
+    drinking_frequency: DrinkingFrequency
     drinking_amount_per_session: PositiveInt | None = None
     systolic_bp: PositiveInt
     diastolic_bp: PositiveInt
-    pulse: PositiveInt | None = None
 
     @model_validator(mode="after")
     def validate_conditional_fields(self) -> Self:
@@ -25,7 +24,7 @@ class MonthlyHealthSurveyCreateRequest(BaseModel, ConditionalFieldValidationMixi
             field_names=("smoking_fr_per_day",), condition_field="smoking_status", expected_value=HabitStatus.CURRENT
         )
         self._normalize_conditional_fields(
-            field_names=("drinking_fr_per_week", "drinking_amount_per_session"),
+            field_names=("drinking_amount_per_session",),
             condition_field="drinking_status",
             expected_value=HabitStatus.CURRENT,
         )
@@ -53,12 +52,11 @@ class MonthlyHealthSurveyResponse(MonthlyHealthSurveyListResponse):
     smoking_status: HabitStatus
     smoking_fr_per_day: PositiveInt | None
     drinking_status: HabitStatus
-    drinking_fr_per_week: PositiveInt | None
+    drinking_frequency: DrinkingFrequency
     drinking_amount_per_session: PositiveInt | None
     systolic_bp: PositiveInt
     diastolic_bp: PositiveInt
-    pulse: PositiveInt | None
 
-    @field_serializer("smoking_status", "drinking_status")
+    @field_serializer("smoking_status", "drinking_status", "drinking_frequency")
     def serialize_habit_status(self, value: HabitStatus) -> str:
         return value.label

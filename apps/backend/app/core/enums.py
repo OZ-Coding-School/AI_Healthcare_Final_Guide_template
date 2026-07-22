@@ -29,6 +29,27 @@ class HabitStatus(StrEnum):
         return mapping[self]
 
 
+class DrinkingFrequency(StrEnum):
+    LESS_THAN_MONTHLY = "LESS_THAN_MONTHLY"  # 월 1회 미만
+    MONTHLY = "MONTHLY"  # 월 1회 정도
+    MONTHLY_2_TO_4 = "MONTHLY_2_TO_4"  # 월 2~4회
+    WEEKLY_2_TO_3 = "WEEKLY_2_TO_3"  # 주 2~3회
+    WEEKLY_4_OR_MORE = "WEEKLY_4_OR_MORE"  # 주 4회 이상
+    NOT_APPLICABLE = "NOT_APPLICABLE"  # 해당없음
+
+    @property
+    def label(self) -> str:
+        mapping = {
+            DrinkingFrequency.LESS_THAN_MONTHLY: "월 1회 미만",
+            DrinkingFrequency.MONTHLY: "월 1회 정도",
+            DrinkingFrequency.MONTHLY_2_TO_4: "월 2~4회",
+            DrinkingFrequency.WEEKLY_2_TO_3: "주 2~3회",
+            DrinkingFrequency.WEEKLY_4_OR_MORE: "주 4회 이상",
+            DrinkingFrequency.NOT_APPLICABLE: "해당없음",
+        }
+        return mapping[self]
+
+
 class BloodSugarMeasurementType(StrEnum):
     FASTING = "FASTING"  # 공복
     BEFORE_BREAKFAST = "BEFORE_BREAKFAST"  # 아침 식전

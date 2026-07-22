@@ -1,5 +1,5 @@
 [project]
-name = "ai-health-example"
+name = "vitalAI-backend"
 version = "0.1.0"
 description = "AI 헬스케어 파이널 프로젝트 예시용"
 readme = "README.md"
@@ -13,11 +13,6 @@ dependencies = [
     "redis>=7.1.0",
     "tomlkit>=0.14.0",
     "uuid>=1.30",
-]
-
-[dependency-groups]
-ai = []
-app = [
     "aerich>=0.9.2",
     "argon2-cffi>=25.1.0",
     "asyncmy>=0.2.11",
@@ -31,6 +26,8 @@ app = [
     "uuid6>=2025.0.1",
     "uvicorn>=0.40.0",
 ]
+
+[dependency-groups]
 dev = [
     "coverage>=7.13.2",
     "fakeredis>=2.36.2",
@@ -40,16 +37,6 @@ dev = [
     "ruff>=0.14.14",
     "types-python-dateutil>=2.9.0.20260124",
 ]
-
-[tool.uv.sources]
-torch = [
-    { index = "pytorch-cpu" },
-]
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
 
 [tool.aerich]
 tortoise_orm = "app.core.db.databases.TORTOISE_ORM"
