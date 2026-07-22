@@ -1,5 +1,5 @@
-from data_loader import DataLoader
-from knhanes_preprocessor import KnhanesPreprocessor
+from core.utils.data_loader import DataLoader
+from core.utils.knhanes_preprocessor import KnhanesPreprocessor
 
 
 __all__ = [
