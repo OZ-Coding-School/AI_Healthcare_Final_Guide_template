@@ -4,6 +4,23 @@ const BASE = "/api/v1/health-surveys";
 
 export type HabitStatus = "NEVER" | "FORMER" | "CURRENT";
 
+export type DrinkingFrequency =
+  | "LESS_THAN_MONTHLY"
+  | "MONTHLY"
+  | "MONTHLY_2_TO_4"
+  | "WEEKLY_2_TO_3"
+  | "WEEKLY_4_OR_MORE"
+  | "NOT_APPLICABLE";
+
+export const DRINKING_FREQUENCY_LABELS: Record<DrinkingFrequency, string> = {
+  LESS_THAN_MONTHLY: "월 1회 미만",
+  MONTHLY: "월 1회 정도",
+  MONTHLY_2_TO_4: "월 2~4회",
+  WEEKLY_2_TO_3: "주 2~3회",
+  WEEKLY_4_OR_MORE: "주 4회 이상",
+  NOT_APPLICABLE: "해당없음",
+};
+
 export interface HealthSurvey {
   id: string;
   title: string;
@@ -14,22 +31,20 @@ export interface HealthSurveyDetail extends HealthSurvey {
   smoking_status: string;
   smoking_fr_per_day?: number;
   drinking_status: string;
-  drinking_fr_per_week?: number;
+  drinking_frequency?: DrinkingFrequency;
   drinking_amount_per_session?: number;
   systolic_bp: number;
   diastolic_bp: number;
-  pulse?: number;
 }
 
 export interface CreateHealthSurveyBody {
   smoking_status: HabitStatus;
   smoking_fr_per_day?: number;
   drinking_status: HabitStatus;
-  drinking_fr_per_week?: number;
+  drinking_frequency?: DrinkingFrequency;
   drinking_amount_per_session?: number;
   systolic_bp: number;
   diastolic_bp: number;
-  pulse?: number;
 }
 
 /** GET /api/v1/health-surveys */

@@ -21,7 +21,6 @@ export interface AnnualHealthScreeningDetail extends AnnualHealthScreening {
   waist_circumference: number;
   sbp: number;
   dbp: number;
-  pulse: number;
   fbs: number;
   hba1c: number;
   triglyceride: number;
@@ -30,8 +29,6 @@ export interface AnnualHealthScreeningDetail extends AnnualHealthScreening {
   total_cholesterol: number;
   ast: number;
   alt: number;
-  gamma_gtp: number;
-  egfr: number;
   creatinine: number;
   urine_protein: string;
   urine_glucose: string;
@@ -47,7 +44,6 @@ export interface CreateAnnualHealthScreeningBody {
   waist_circumference: number;
   sbp: number;
   dbp: number;
-  pulse: number;
   fbs: number;
   hba1c: number;
   triglyceride: number;
@@ -56,8 +52,6 @@ export interface CreateAnnualHealthScreeningBody {
   total_cholesterol: number;
   ast: number;
   alt: number;
-  gamma_gtp: number;
-  egfr: number;
   creatinine: number;
   urine_protein: UrineProteinStatus;
   urine_glucose: UrineGlucoseStatus;
