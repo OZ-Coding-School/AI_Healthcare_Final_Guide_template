@@ -21,6 +21,7 @@ import {
   HealthSurvey,
   HealthSurveyDetail,
   HabitStatus,
+  DRINKING_FREQUENCY_LABELS,
   CreateHealthSurveyBody,
 } from "../shared/api/healthSurveyApi";
 import { ApiError } from "../shared/api/client";
@@ -77,6 +78,7 @@ function SurveyForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: 
   const [form, setForm] = useState<CreateHealthSurveyBody>({
     smoking_status: "NEVER",
     drinking_status: "NEVER",
+    drinking_frequency: "NOT_APPLICABLE",
     systolic_bp: 0,
     diastolic_bp: 0,
   });
@@ -97,8 +99,8 @@ function SurveyForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: 
     }
 
     if (form.drinking_status === "CURRENT") {
-      if (!form.drinking_fr_per_week || form.drinking_fr_per_week <= 0) {
-        e.drinking_fr_per_week = "주당 음주 횟수를 입력해주세요.";
+      if (!form.drinking_frequency || form.drinking_frequency === "NOT_APPLICABLE") {
+        e.drinking_frequency = "음주 빈도를 선택해주세요.";
       }
       if (!form.drinking_amount_per_session || form.drinking_amount_per_session <= 0) {
         e.drinking_amount_per_session = "1회 음주량을 입력해주세요.";
@@ -136,12 +138,9 @@ function SurveyForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: 
         payload.smoking_fr_per_day = form.smoking_fr_per_day;
       }
       if (form.drinking_status === "CURRENT") {
-        if (form.drinking_fr_per_week) payload.drinking_fr_per_week = form.drinking_fr_per_week;
+        if (form.drinking_frequency) payload.drinking_frequency = form.drinking_frequency;
         if (form.drinking_amount_per_session)
           payload.drinking_amount_per_session = form.drinking_amount_per_session;
-      }
-      if (form.pulse && form.pulse > 0) {
-        payload.pulse = form.pulse;
       }
 
       await createHealthSurvey(payload);
@@ -247,7 +246,7 @@ function SurveyForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: 
               onClick={() => {
                 set("drinking_status")(opt.value);
                 if (opt.value !== "CURRENT") {
-                  set("drinking_fr_per_week")(undefined);
+                  set("drinking_frequency")("NOT_APPLICABLE");
                   set("drinking_amount_per_session")(undefined);
                 }
               }}
@@ -265,21 +264,22 @@ function SurveyForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: 
         </div>
         {form.drinking_status === "CURRENT" && (
           <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="주당 음주 횟수" required error={errors.drinking_fr_per_week} hint="예: 2">
-              <input
-                type="number"
-                min="1"
-                placeholder="2"
-                value={form.drinking_fr_per_week ?? ""}
-                onChange={(e) =>
-                  set("drinking_fr_per_week")(e.target.value ? Number(e.target.value) : undefined)
-                }
+            <Field label="음주 빈도" required error={errors.drinking_frequency}>
+              <select
+                value={form.drinking_frequency ?? "NOT_APPLICABLE"}
+                onChange={(e) => set("drinking_frequency")(e.target.value)}
                 className={INPUT}
                 style={{
-                  borderColor: errors.drinking_fr_per_week ? "#EF4444" : "rgba(13,59,110,0.2)",
+                  borderColor: errors.drinking_frequency ? "#EF4444" : "rgba(13,59,110,0.2)",
                   fontFamily: "JetBrains Mono",
                 }}
-              />
+              >
+                {Object.entries(DRINKING_FREQUENCY_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field
               label="1회 음주량 (잔)"
@@ -310,13 +310,13 @@ function SurveyForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: 
         )}
       </div>
 
-      {/* 혈압 & 맥박 */}
+      {/* 혈압 */}
       <div className="mb-5">
         <div className="flex items-center gap-2 mb-3">
           <Heart size={16} style={{ color: "#0D3B6E" }} />
-          <h4 className="font-semibold text-foreground text-sm">혈압 & 맥박</h4>
+          <h4 className="font-semibold text-foreground text-sm">혈압</h4>
         </div>
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 gap-4">
           <Field label="수축기 혈압 (mmHg)" required error={errors.systolic_bp} hint="예: 120">
             <input
               type="number"
@@ -341,20 +341,6 @@ function SurveyForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: 
               className={INPUT}
               style={{
                 borderColor: errors.diastolic_bp ? "#EF4444" : "rgba(13,59,110,0.2)",
-                fontFamily: "JetBrains Mono",
-              }}
-            />
-          </Field>
-          <Field label="맥박 (bpm)" error={errors.pulse} hint="선택 사항">
-            <input
-              type="number"
-              min="1"
-              placeholder="72"
-              value={form.pulse ?? ""}
-              onChange={(e) => set("pulse")(e.target.value ? Number(e.target.value) : undefined)}
-              className={INPUT}
-              style={{
-                borderColor: errors.pulse ? "#EF4444" : "rgba(13,59,110,0.2)",
                 fontFamily: "JetBrains Mono",
               }}
             />
@@ -446,19 +432,20 @@ function DetailModal({ survey, onClose }: { survey: HealthSurveyDetail; onClose:
             </div>
             <div className="px-4 py-3 bg-muted rounded-lg">
               <div className="text-sm text-foreground mb-1">{survey.drinking_status}</div>
-              {survey.drinking_fr_per_week && survey.drinking_amount_per_session && (
+              {survey.drinking_frequency && survey.drinking_amount_per_session && (
                 <div className="text-xs text-muted-foreground">
-                  주 {survey.drinking_fr_per_week}회 · 1회 {survey.drinking_amount_per_session}잔
+                  {DRINKING_FREQUENCY_LABELS[survey.drinking_frequency]} · 1회{" "}
+                  {survey.drinking_amount_per_session}잔
                 </div>
               )}
             </div>
           </div>
 
-          {/* 혈압 & 맥박 */}
+          {/* 혈압 */}
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Heart size={15} style={{ color: "#0D3B6E" }} />
-              <h4 className="font-semibold text-foreground text-sm">혈압 & 맥박</h4>
+              <h4 className="font-semibold text-foreground text-sm">혈압</h4>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="px-4 py-3 bg-muted rounded-lg">
@@ -479,17 +466,6 @@ function DetailModal({ survey, onClose }: { survey: HealthSurveyDetail; onClose:
                   {survey.diastolic_bp} <span className="text-sm font-normal">mmHg</span>
                 </div>
               </div>
-              {survey.pulse && (
-                <div className="px-4 py-3 bg-muted rounded-lg col-span-2">
-                  <div className="text-xs text-muted-foreground mb-1">맥박</div>
-                  <div
-                    className="text-lg font-semibold text-foreground"
-                    style={{ fontFamily: "JetBrains Mono" }}
-                  >
-                    {survey.pulse} <span className="text-sm font-normal">bpm</span>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

@@ -27,6 +27,7 @@ import {
   UrineProteinStatus,
   UrineGlucoseStatus,
   CreateAnnualHealthScreeningBody,
+  urineStatusToKorean,
 } from "../shared/api/annualHealthScreeningApi";
 import { formatDateTime } from "../shared/utils/format";
 
@@ -74,15 +75,6 @@ function getStatus(value: number, type: string): Status {
       if (value < 40) return "normal";
       if (value < 100) return "warning";
       return "danger";
-    case "gamma_gtp":
-      if (value < 50) return "normal";
-      if (value < 100) return "warning";
-      return "danger";
-    case "egfr":
-      // 신사구체여과율: 높을수록 좋음
-      if (value >= 90) return "normal";
-      if (value >= 60) return "warning";
-      return "danger";
     case "creatinine":
       // 크레아티닌: 0.6-1.2 정상
       if (value >= 0.6 && value <= 1.2) return "normal";
@@ -121,12 +113,12 @@ function StatusBadge({ status }: { status: Status }) {
 
 /* ── Urine options ── */
 const URINE_OPTIONS: { value: UrineProteinStatus | UrineGlucoseStatus; label: string }[] = [
-  { value: "-", label: "음성 (-)" },
-  { value: "±", label: "미량 (±)" },
-  { value: "1+", label: "양성 1+ (+)" },
-  { value: "2+", label: "양성 2+ (++)" },
-  { value: "3+", label: "양성 3+ (+++)" },
-  { value: "4+", label: "양성 4+ (++++)" },
+  { value: "NEGATIVE", label: "음성 (-)" },
+  { value: "TRACE", label: "미량 (±)" },
+  { value: "POSITIVE_1", label: "양성 1+ (+)" },
+  { value: "POSITIVE_2", label: "양성 2+ (++)" },
+  { value: "POSITIVE_3", label: "양성 3+ (+++)" },
+  { value: "POSITIVE_4", label: "양성 4+ (++++)" },
 ];
 
 /* ── Input Field ── */
@@ -175,7 +167,6 @@ function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
     waist_circumference: 0,
     sbp: 0,
     dbp: 0,
-    pulse: 0,
     fbs: 0,
     hba1c: 0,
     triglyceride: 0,
@@ -184,8 +175,6 @@ function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
     total_cholesterol: 0,
     ast: 0,
     alt: 0,
-    gamma_gtp: 0,
-    egfr: 0,
     creatinine: 0,
     urine_protein: "NEGATIVE",
     urine_glucose: "NEGATIVE",
@@ -229,7 +218,6 @@ function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
       e.waist_circumference = "허리둘레를 올바르게 입력해주세요.";
     if (!form.sbp || form.sbp <= 0) e.sbp = "수축기 혈압을 입력해주세요.";
     if (!form.dbp || form.dbp <= 0) e.dbp = "이완기 혈압을 입력해주세요.";
-    if (!form.pulse || form.pulse <= 0) e.pulse = "맥박을 입력해주세요.";
     if (!form.fbs || form.fbs <= 0) e.fbs = "공복 혈당을 입력해주세요.";
     if (!form.hba1c || form.hba1c <= 0) e.hba1c = "당화혈색소를 입력해주세요.";
     if (!form.triglyceride || form.triglyceride <= 0) e.triglyceride = "중성지방을 입력해주세요.";
@@ -239,8 +227,6 @@ function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
       e.total_cholesterol = "총 콜레스테롤을 입력해주세요.";
     if (!form.ast || form.ast <= 0) e.ast = "AST를 입력해주세요.";
     if (!form.alt || form.alt <= 0) e.alt = "ALT를 입력해주세요.";
-    if (!form.gamma_gtp || form.gamma_gtp <= 0) e.gamma_gtp = "감마 GTP를 입력해주세요.";
-    if (!form.egfr || form.egfr <= 0) e.egfr = "신사구체여과율을 입력해주세요.";
     if (!form.creatinine || form.creatinine <= 0) e.creatinine = "크레아티닌을 입력해주세요.";
     if (!form.screening_at) e.screening_at = "검진 일자를 선택해주세요.";
 
@@ -408,13 +394,13 @@ function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
         </div>
       </div>
 
-      {/* 혈압 & 맥박 */}
+      {/* 혈압 */}
       <div className="mb-5 pb-5 border-b border-border">
         <div className="flex items-center gap-2 mb-3">
           <Heart size={16} style={{ color: "#0D3B6E" }} />
-          <h4 className="font-semibold text-foreground text-sm">혈압 & 맥박</h4>
+          <h4 className="font-semibold text-foreground text-sm">혈압</h4>
         </div>
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 gap-4">
           <Field label="수축기 혈압 (mmHg)" required error={errors.sbp}>
             <input
               type="number"
@@ -439,20 +425,6 @@ function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
               className={INPUT}
               style={{
                 borderColor: errors.dbp ? "#EF4444" : "rgba(13,59,110,0.2)",
-                fontFamily: "JetBrains Mono",
-              }}
-            />
-          </Field>
-          <Field label="맥박 (bpm)" required error={errors.pulse}>
-            <input
-              type="number"
-              min="1"
-              placeholder="72"
-              value={form.pulse || ""}
-              onChange={(e) => set("pulse")(e.target.value ? Number(e.target.value) : 0)}
-              className={INPUT}
-              style={{
-                borderColor: errors.pulse ? "#EF4444" : "rgba(13,59,110,0.2)",
                 fontFamily: "JetBrains Mono",
               }}
             />
@@ -598,34 +570,6 @@ function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
               className={INPUT}
               style={{
                 borderColor: errors.alt ? "#EF4444" : "rgba(13,59,110,0.2)",
-                fontFamily: "JetBrains Mono",
-              }}
-            />
-          </Field>
-          <Field label="감마 GTP (U/L)" required error={errors.gamma_gtp}>
-            <input
-              type="number"
-              min="1"
-              placeholder="30"
-              value={form.gamma_gtp || ""}
-              onChange={(e) => set("gamma_gtp")(e.target.value ? Number(e.target.value) : 0)}
-              className={INPUT}
-              style={{
-                borderColor: errors.gamma_gtp ? "#EF4444" : "rgba(13,59,110,0.2)",
-                fontFamily: "JetBrains Mono",
-              }}
-            />
-          </Field>
-          <Field label="신사구체여과율 (mL/min)" required error={errors.egfr}>
-            <input
-              type="number"
-              min="1"
-              placeholder="90"
-              value={form.egfr || ""}
-              onChange={(e) => set("egfr")(e.target.value ? Number(e.target.value) : 0)}
-              className={INPUT}
-              style={{
-                borderColor: errors.egfr ? "#EF4444" : "rgba(13,59,110,0.2)",
                 fontFamily: "JetBrains Mono",
               }}
             />
@@ -848,10 +792,9 @@ function DetailModal({
             <Item label="허리둘레" value={screening.waist_circumference} unit="cm" />
           </Section>
 
-          <Section icon={Heart} title="혈압 & 맥박">
+          <Section icon={Heart} title="혈압">
             <ItemWithStatus label="수축기 혈압" value={screening.sbp} unit="mmHg" type="sbp" />
             <ItemWithStatus label="이완기 혈압" value={screening.dbp} unit="mmHg" type="dbp" />
-            <Item label="맥박" value={screening.pulse} unit="bpm" />
           </Section>
 
           <Section icon={Droplets} title="혈당">
@@ -880,18 +823,6 @@ function DetailModal({
             <ItemWithStatus label="AST" value={screening.ast} unit="U/L" type="ast" />
             <ItemWithStatus label="ALT" value={screening.alt} unit="U/L" type="alt" />
             <ItemWithStatus
-              label="감마 GTP"
-              value={screening.gamma_gtp}
-              unit="U/L"
-              type="gamma_gtp"
-            />
-            <ItemWithStatus
-              label="신사구체여과율"
-              value={screening.egfr}
-              unit="mL/min"
-              type="egfr"
-            />
-            <ItemWithStatus
               label="크레아티닌"
               value={screening.creatinine}
               unit="mg/dL"
@@ -900,8 +831,14 @@ function DetailModal({
           </Section>
 
           <Section icon={Clipboard} title="요검사">
-            <Item label="요단백" value={screening.urine_protein} />
-            <Item label="요당" value={screening.urine_glucose} />
+            <Item
+              label="요단백"
+              value={urineStatusToKorean(screening.urine_protein as UrineProteinStatus)}
+            />
+            <Item
+              label="요당"
+              value={urineStatusToKorean(screening.urine_glucose as UrineGlucoseStatus)}
+            />
           </Section>
 
           <div>
