@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, cast
+from typing import cast
 
-import pyreadstat as prs
 import pandas as pd
+import pyreadstat as prs
 from pyreadstat import metadata_container
-
 
 VALID_DATE_SET_FILE_EXT = (
     ".sas7bdat",
@@ -16,7 +15,7 @@ VALID_DATE_SET_FILE_EXT = (
 )
 
 
-class UnsupportedFileType(Exception):
+class UnsupportedFileTypeError(Exception):
     def __init__(self, ext: str) -> None:
         super().__init__(f"Unsupported file type: {ext}, supported types: {','.join(VALID_DATE_SET_FILE_EXT)}")
 
@@ -24,7 +23,7 @@ class UnsupportedFileType(Exception):
 @dataclass
 class Dataset:
     df: pd.DataFrame
-    metadata: Optional[metadata_container] = None
+    metadata: metadata_container | None = None
 
 
 class DataLoader:
@@ -51,7 +50,7 @@ class DataLoader:
             case ".parquet":
                 return Dataset(df=pd.read_parquet(data_file))
             case _:
-                raise UnsupportedFileType(data_file_ext)
+                raise UnsupportedFileTypeError(data_file_ext)
 
     @staticmethod
     def _extract_file_ext(file_path: Path | str) -> str:
@@ -60,4 +59,4 @@ class DataLoader:
     def _validate_sas_catalog_file_ext(self, file_path: Path | str) -> None:
         ext = self._extract_file_ext(file_path)
         if not ext or ext != ".sas7bcat":
-            raise UnsupportedFileType(ext)
+            raise UnsupportedFileTypeError(ext)

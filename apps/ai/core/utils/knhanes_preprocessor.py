@@ -1,8 +1,9 @@
 import json
-import pandas as pd
-import numpy as np
 from pathlib import Path
-from typing import Dict, List, Any, Literal
+from typing import Any, Literal
+
+import numpy as np
+import pandas as pd
 
 from core import settings
 from core.enums import DrinkingFrequency, DrinkingStatus, SmokingStatus, UrinalysisStatus
@@ -15,8 +16,8 @@ class KnhanesPreprocessor:
         self.target_fields = self._get_target_fields()
         self.processed_data_dir: Path = settings.DATA_DIR / "processed/knhanes"
 
-    def _load_usable_vars_map(self) -> List[Dict[str, Any]]:
-        with open(self.usable_vars_path, "r", encoding="utf-8") as f:
+    def _load_usable_vars_map(self) -> list[dict[str, Any]]:
+        with open(self.usable_vars_path, encoding="utf-8") as f:
             return json.load(f)
 
     def _get_target_fields(self) -> list[str]:
@@ -55,9 +56,7 @@ class KnhanesPreprocessor:
 
         # 2. 컬럼명 변경 (KNHANES 변수명 -> 앱 내 식별 필드명)
         field_name_map = {
-            var["name"]: var["mapped_model_field"]
-            for var in self.usable_vars_map
-            if "mapped_model_field" in var
+            var["name"]: var["mapped_model_field"] for var in self.usable_vars_map if "mapped_model_field" in var
         }
         processed_df = processed_df.rename(columns=field_name_map)
 
@@ -119,10 +118,7 @@ class KnhanesPreprocessor:
         # 19세 미만의 경우 만성질환(당뇨, 고혈압 조사 대상이 아님)
         adult_mask = df["age"] >= 19
         # 당뇨나 고혈압 유병 여부가 0 또는 1인 것만 남겨둠
-        valid_mask = (
-            df["hypertension_prevalence"].isin([0, 1]) |
-            df["diabetes_prevalence"].isin([0, 1])
-        )
+        valid_mask = df["hypertension_prevalence"].isin([0, 1]) | df["diabetes_prevalence"].isin([0, 1])
         return df[adult_mask & valid_mask].copy()
 
     @staticmethod
@@ -131,7 +127,7 @@ class KnhanesPreprocessor:
             if "height" in df.columns and "weight" in df.columns:
                 # height(cm) -> m
                 h_m = df["height"] / 100
-                calculated_bmi = df["weight"] / (h_m ** 2)
+                calculated_bmi = df["weight"] / (h_m**2)
                 if "bmi" in df.columns:
                     df["bmi"] = df["bmi"].fillna(calculated_bmi)
                 else:
@@ -183,13 +179,15 @@ class KnhanesPreprocessor:
             # 3.과거엔 피웠으나 현재 안피움 -> FORMER
             # 8.비해당 -> NEVER
             # 9.모름, 무응답 -> 결측치 처리
-            df["smoking_status"] = df["smoking_status"].map({
-                1: SmokingStatus.CURRENT,
-                2: SmokingStatus.CURRENT,
-                3: SmokingStatus.FORMER,
-                8: SmokingStatus.NEVER,
-                9: np.nan,
-            })
+            df["smoking_status"] = df["smoking_status"].map(
+                {
+                    1: SmokingStatus.CURRENT,
+                    2: SmokingStatus.CURRENT,
+                    3: SmokingStatus.FORMER,
+                    8: SmokingStatus.NEVER,
+                    9: np.nan,
+                }
+            )
 
         if "smoking_fr_per_day" in df.columns:
             # 888.비해당(소아), 999.모름, 무응답 -> 결측치 처리
@@ -213,7 +211,7 @@ class KnhanesPreprocessor:
         """
         if "drinking_experience" in df.columns:
             # 음주 경험이 없을 때 변수 처리
-            never_mask = (df["drinking_experience"] == 1)
+            never_mask = df["drinking_experience"] == 1
             df.loc[never_mask, "drinking_experience"] = DrinkingStatus.NEVER
             df.loc[never_mask, "drinking_frequency"] = DrinkingFrequency.NOT_APPLICABLE
             df.loc[never_mask, "drinking_amount_per_session"] = 0
@@ -227,26 +225,20 @@ class KnhanesPreprocessor:
             # 현재 음주를 하고 있는 경우 변수 처리
             current_mask = (df["drinking_experience"] == 2) & (df["drinking_frequency"].isin([2, 3, 4, 5, 6]))
             df.loc[current_mask, "drinking_experience"] = DrinkingStatus.CURRENT
-            df.loc[current_mask, "drinking_frequency"] = df["drinking_frequency"].map({
-                2: DrinkingFrequency.LESS_THAN_MONTHLY,
-                3: DrinkingFrequency.MONTHLY,
-                4: DrinkingFrequency.MONTHLY_2_TO_4,
-                5: DrinkingFrequency.WEEKLY_2_TO_3,
-                6: DrinkingFrequency.WEEKLY_4_OR_MORE,
-            })
+            df.loc[current_mask, "drinking_frequency"] = df["drinking_frequency"].map(
+                {
+                    2: DrinkingFrequency.LESS_THAN_MONTHLY,
+                    3: DrinkingFrequency.MONTHLY,
+                    4: DrinkingFrequency.MONTHLY_2_TO_4,
+                    5: DrinkingFrequency.WEEKLY_2_TO_3,
+                    6: DrinkingFrequency.WEEKLY_4_OR_MORE,
+                }
+            )
 
-            amount_map = {
-                1: 1.5,
-                2: 3.5,
-                3: 5.5,
-                4: 8,
-                5: None
-            }
+            amount_map = {1: 1.5, 2: 3.5, 3: 5.5, 4: 8, 5: None}
+
             def _convert_amount(amount: int) -> None:
-                mask = (
-                    current_mask
-                    & (df["drinking_amount_per_session"] == amount)
-                )
+                mask = current_mask & (df["drinking_amount_per_session"] == amount)
                 if amount in [1, 2, 3, 4]:
                     df.loc[mask, "drinking_amount_per_session"] = amount_map[amount]
                 if amount == 5:
@@ -254,13 +246,11 @@ class KnhanesPreprocessor:
                         df.loc[mask, "drinking_amount_per_session"] = 10
                     else:
                         mask2 = (
-                                mask
-                                & (~df["drinking_amount_per_session2"].isin([888, 999]))
-                                & (df["drinking_amount_per_session2"].notna())
+                            mask
+                            & (~df["drinking_amount_per_session2"].isin([888, 999]))
+                            & (df["drinking_amount_per_session2"].notna())
                         )
-                        df.loc[mask2, "drinking_amount_per_session"] = df.loc[
-                            mask2, "drinking_amount_per_session2"
-                        ]
+                        df.loc[mask2, "drinking_amount_per_session"] = df.loc[mask2, "drinking_amount_per_session2"]
 
                         # 보조 문항이 결측이거나 888/999인 경우는 10으로 대체
                         df.loc[mask & ~mask2, "drinking_amount_per_session"] = 10
@@ -270,10 +260,7 @@ class KnhanesPreprocessor:
 
             # 8.비해당 또는 9.모름, 무응답 -> 결측치 처리
             missing_mask = df["drinking_experience"].isin([8, 9]) | (df["drinking_frequency"].isin([8, 9]))
-            df.loc[
-                missing_mask,
-                ["drinking_experience", "drinking_frequency", "drinking_amount_per_session"]
-            ] = np.nan
+            df.loc[missing_mask, ["drinking_experience", "drinking_frequency", "drinking_amount_per_session"]] = np.nan
         return df
 
     @staticmethod
@@ -283,11 +270,11 @@ class KnhanesPreprocessor:
         비해당(8)으로 처리된 유병 여부(pr)를 0으로 보정하고 결측치를 처리함.
         """
         if "hypertension_prevalence" in df.columns and "has_hypertension_diagnosis" in df.columns:
-            mask = (df["has_hypertension_diagnosis"] == 0)
+            mask = df["has_hypertension_diagnosis"] == 0
             df.loc[mask, "hypertension_prevalence"] = 0
 
         if "diabetes_prevalence" in df.columns and "has_diabetes_diagnosis" in df.columns:
-            mask = (df["has_diabetes_diagnosis"] == 0)
+            mask = df["has_diabetes_diagnosis"] == 0
             df.loc[mask, "diabetes_prevalence"] = 0
 
             # 이제 pr 변수에 남아있는 8이나 9는 진짜 결측치이므로 NaN 처리

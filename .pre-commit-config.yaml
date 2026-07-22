@@ -16,9 +16,17 @@ repos:
     rev: v0.15.20
     hooks:
       - id: ruff-format
+        name: backend-ruff-format
         files: ^apps/backend/
       - id: ruff
+        name: backend-ruff
         files: ^apps/backend/
+        args: [ --fix ]
+      - id: ruff
+        name: ai-ruff-format
+        files: ^apps/ai/
+      - id: ruff
+        name: ai-ruff
         args: [ --fix ]
 
   # MyPy (정적 타입 검사)
@@ -26,12 +34,20 @@ repos:
     rev: v1.14.0
     hooks:
       - id: mypy
+        name: backend-mypy
         files: ^apps/backend/
         # FastAPI와 Pydantic 검사를 위한 의존성 주입
         additional_dependencies:
           - pydantic
           - fastapi
           - types-requests  # HTTP 클라이언트 테스트용 (선택)
+          - types-redis
+      - id: mypy
+        name: ai-mypy
+        files: ^apps/ai/
+        additional_dependencies:
+          - pydantic
+          - types-requests
           - types-redis
 
   # Frontend Lint (ESLint) & Format (Prettier)
