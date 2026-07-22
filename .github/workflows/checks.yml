@@ -17,7 +17,28 @@ on:
       - 'hotfix/*'
 
 jobs:
-  lint:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      ai: ${{ steps.filter.outputs.ai }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'apps/backend/**'
+            ai:
+              - 'apps/ai/**'
+            frontend:
+              - 'apps/frontend/**'
+
+  backend-lint:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -45,7 +66,39 @@ jobs:
       - name: Run Ruff Format Check
         run: uv run ruff format . --check
 
+  ai-lint:
+    needs: changes
+    if: needs.changes.outputs.ai == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ai
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run Ruff Check (Linting)
+        run: uv run ruff check .
+
+      - name: Run Ruff Format Check
+        run: uv run ruff format . --check
+
   frontend-lint:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -70,7 +123,9 @@ jobs:
       - name: Run Prettier Check
         run: npx prettier --check "src/**/*.{ts,tsx,css,md}"
 
-  test:
+  backend-test:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
