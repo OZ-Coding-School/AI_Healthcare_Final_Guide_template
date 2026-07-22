@@ -2,7 +2,7 @@ import logging
 import sys
 
 
-def setup_logger(
+def configure_logger(
     name: str = "AI Worker",
     level: int = logging.INFO,
 ) -> logging.Logger:
