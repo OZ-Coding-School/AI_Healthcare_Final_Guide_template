@@ -10,6 +10,7 @@ class Config(BaseSettings):
 
     TIMEZONE: zoneinfo.ZoneInfo = field(default_factory=lambda: zoneinfo.ZoneInfo("Asia/Seoul"))
     DATA_DIR: Path = Path(__file__).resolve().parent.parent / "data"
+    DOCS_DIR: Path = Path(__file__).resolve().parent.parent.parent.parent / "docs"
 
 
 settings = Config()
