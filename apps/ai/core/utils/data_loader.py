@@ -29,7 +29,7 @@ class Dataset:
 class DataLoader:
     def load(
         self,
-        data_file: str,
+        data_file: str | Path,
         sas_catalog_file: Path | str | None = None,
     ) -> Dataset:
         data_file_ext = self._extract_file_ext(data_file)
