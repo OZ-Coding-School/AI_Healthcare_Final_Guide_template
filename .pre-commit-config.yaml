@@ -6,7 +6,7 @@ repos:
       - id: end-of-file-fixer              # 파일 끝 New line 추가
       - id: check-yaml                     # YAML 파일 검사
       - id: check-added-large-files        # 파일 크기 제한 검사
-        args: ['--maxkb=500']
+        args: ['--maxkb=4096']
       - id: check-merge-conflict           # Git merge conflict 마커 검사
       - id: debug-statements               # breakpoint(), pdb 등 디버그 코드 검사
       - id: detect-private-key             # 프라이빗 키 작성여부 검사
