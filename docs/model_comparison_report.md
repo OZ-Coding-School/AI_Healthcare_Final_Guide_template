@@ -21,8 +21,19 @@
 | XGBoost | 미적용 | 0.8860 | 0.8558 | 0.8108 | 0.8327 | 0.9456 |
 | | 적용 | 0.8898 | 0.8537 | 0.8267 | 0.8400 | 0.9488 |
 
-### 1.2. 주요 분석 결과
+### 1.2. 시각화 분석 (주요 모델)
+
+당뇨병 판별 모델의 예측 성능을 시각적으로 분석한 결과입니다.
+
+| 분석 항목 | 일반 학습 (Gradient Boosting) | SMOTE 적용 (LightGBM) |
+| :--- | :---: | :---: |
+| **Confusion Matrix** | ![CM](../apps/ai/models/reports/diabetes_diagnosis_GradientBoosting_confusion_matrix.png) | ![CM_SMOTE](../apps/ai/models/reports/diabetes_diagnosis_LightGBM_smote_confusion_matrix.png) |
+| **ROC Curve** | ![ROC](../apps/ai/models/reports/diabetes_diagnosis_GradientBoosting_roc_curve.png) | ![ROC_SMOTE](../apps/ai/models/reports/diabetes_diagnosis_LightGBM_smote_roc_curve.png) |
+| **Prob Distribution** | ![Dist](../apps/ai/models/reports/diabetes_diagnosis_GradientBoosting_probability_distribution.png) | ![Dist_SMOTE](../apps/ai/models/reports/diabetes_diagnosis_LightGBM_smote_probability_distribution.png) |
+
+### 1.3. 주요 분석 결과
 - **SMOTE의 효과**: SMOTE 적용 시 모든 모델에서 재현율(Recall)이 상승하였습니다. 특히 Logistic Regression은 재현율이 0.76에서 0.84로 크게 개선되어 미검출 위험을 낮추었습니다.
+- **예측 성향 변화**: `probability_distribution.png` 확인 결과, 일반 모델은 0(정상) 근처에 예측값이 밀집되어 있으나, SMOTE 모델은 1(유병)에 대한 확신도가 높아져 더 균형 잡힌 확률 분포를 보입니다.
 - **최우수 모델**: AUC 기준으로는 일반 학습된 **Gradient Boosting**이 0.9546으로 가장 우수하며, F1-Score 기준으로는 SMOTE를 적용한 **LightGBM**이 0.8497로 가장 균형 잡힌 성능을 보입니다.
 - **예측 성능**: 모든 모델이 AUC 0.945 이상의 매우 높은 성능을 보여, 현재 사용된 피처들이 당뇨병 예측에 매우 강력한 설명력을 가지고 있음을 재확인했습니다.
 
@@ -47,8 +58,18 @@
 | XGBoost | 미적용 | 0.8528 | 0.8870 | 0.9427 | 0.9140 | 0.8411 | 0.4144 |
 | | 적용 | 0.8540 | 0.8955 | 0.9329 | 0.9138 | 0.8432 | 0.4692 |
 
-### 2.2. 주요 분석 결과
-- **특이도(Specificity)의 극적인 개선**: 일반 모델들은 특이도가 0.37~0.43 수준으로 낮아 오진(정상을 환자로 판단)의 가능성이 높았으나, SMOTE 적용 시 특히 Logistic Regression에서 특이도가 **0.7911**로 비약적으로 상승하였습니다.
+### 2.2. 시각화 분석 (주요 모델)
+
+고혈압 모델의 특이도 개선 효과를 시각적으로 확인할 수 있습니다.
+
+| 분석 항목 | 일반 학습 (Gradient Boosting) | SMOTE 적용 (Logistic Regression) |
+| :--- | :---: | :---: |
+| **Confusion Matrix** | ![CM](../apps/ai/models/reports/hypertension_diagnosis_GradientBoosting_confusion_matrix.png) | ![CM_SMOTE](../apps/ai/models/reports/hypertension_diagnosis_LogisticRegression_smote_confusion_matrix.png) |
+| **ROC Curve** | ![ROC](../apps/ai/models/reports/hypertension_diagnosis_GradientBoosting_roc_curve.png) | ![ROC_SMOTE](../apps/ai/models/reports/hypertension_diagnosis_LogisticRegression_smote_roc_curve.png) |
+| **Prob Distribution** | ![Dist](../apps/ai/models/reports/hypertension_diagnosis_GradientBoosting_probability_distribution.png) | ![Dist_SMOTE](../apps/ai/models/reports/hypertension_diagnosis_LogisticRegression_smote_probability_distribution.png) |
+
+### 2.3. 주요 분석 결과
+- **특이도(Specificity)의 극적인 개선**: `confusion_matrix.png`를 비교해 보면, 일반 모델은 정상군(0)을 환자군(1)으로 오분류하는 비중이 매우 높았으나, SMOTE 적용 모델(특히 Logistic Regression)은 정상군을 정확히 찾아내는 비율이 비약적으로 높아졌습니다.
 - **트레이드오프 발생**: 특이도가 높아지면서 재현율(Recall)과 정확도(Accuracy)는 다소 하락하는 경향을 보입니다. 이는 모델이 단순히 '유병'으로만 예측하던 편향에서 벗어나 정상과 환자를 더 균형 있게 구분하게 되었음을 의미합니다.
 - **최우수 모델**: 높은 변별력(AUC)과 함께 임상적으로 중요한 오진율 감소(특이도 확보)를 고려할 때, SMOTE를 적용한 **Logistic Regression**이 고혈압 판별 모델로 가장 적합한 특성을 보입니다.
 
@@ -69,4 +90,10 @@
    - 실제 서비스 적용 시 정밀도와 재현율의 중요도에 따라 분류 임계값(Threshold)을 최적화하는 단계가 필요합니다.
 
 ---
-*참고: 상세 시각화 자료(Confusion Matrix, ROC Curve 등)는 `apps/ai/models/reports/` 디렉토리에서 확인할 수 있습니다.*
+*참고: 상세 시각화 자료(Confusion Matrix, ROC Curve 등)는 아래 명령어를 실행한 후 `apps/ai/models/reports/` 디렉토리에서 확인할 수 있습니다.*
+```bash
+cd apps/ai
+source .venv/bin/activate
+
+python3 -m scripts.run_machine_learning_workflow
+```
