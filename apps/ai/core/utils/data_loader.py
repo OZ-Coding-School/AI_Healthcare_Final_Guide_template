@@ -29,8 +29,8 @@ class Dataset:
 class DataLoader:
     def load(
         self,
-        data_file: str | Path,
-        sas_catalog_file: Path | str | None = None,
+        data_file: Path,
+        sas_catalog_file: Path | None = None,
     ) -> Dataset:
         data_file_ext = self._extract_file_ext(data_file)
         match data_file_ext:
@@ -40,6 +40,7 @@ class DataLoader:
                 df, metadata = prs.read_sas7bdat(
                     data_file,
                     catalog_file=sas_catalog_file if sas_catalog_file else None,
+                    encoding="CP949",
                 )
                 df = cast(pd.DataFrame, df)
                 return Dataset(df=df, metadata=metadata)
@@ -53,10 +54,10 @@ class DataLoader:
                 raise UnsupportedFileTypeError(data_file_ext)
 
     @staticmethod
-    def _extract_file_ext(file_path: Path | str) -> str:
-        return Path(file_path).suffix.lower()
+    def _extract_file_ext(file_path: Path) -> str:
+        return file_path.suffix.lower()
 
-    def _validate_sas_catalog_file_ext(self, file_path: Path | str) -> None:
+    def _validate_sas_catalog_file_ext(self, file_path: Path) -> None:
         ext = self._extract_file_ext(file_path)
         if not ext or ext != ".sas7bcat":
             raise UnsupportedFileTypeError(ext)
