@@ -1,20 +1,78 @@
 import json
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 from core import settings
-from core.enums import DrinkingFrequency, DrinkingStatus, SmokingStatus, UrinalysisStatus
+from core.enums import DataPurposeType, DrinkingFrequency, DrinkingStatus, SmokingStatus, UrinalysisStatus
+
+TARGET_VAR_MAP = {
+    DataPurposeType.DIABETES_DIAGNOSIS: "diabetes_prevalence",
+    DataPurposeType.HYPERTENSION_DIAGNOSIS: "hypertension_prevalence",
+    DataPurposeType.DIABETES_RISK: "",
+    DataPurposeType.HYPERTENSION_RISK: "",
+}
+
+UNNECESSARY_VAR_MAP = {
+    "common": [
+        "drinking_amount_per_session2",
+        "family_history_hypertension1",
+        "family_history_hypertension2",
+        "family_history_hypertension3",
+        "family_history_diabetes1",
+        "family_history_diabetes2",
+        "family_history_diabetes3",
+    ],
+    DataPurposeType.DIABETES_DIAGNOSIS: [
+        "year",
+        "has_diabetes_diagnosis",
+    ],
+    DataPurposeType.DIABETES_RISK: [],
+    DataPurposeType.HYPERTENSION_DIAGNOSIS: [
+        "year",
+        "has_hypertension_diagnosis",
+    ],
+    DataPurposeType.HYPERTENSION_RISK: [],
+}
+
+CATEGORICAL_FEATURES = [
+    "gender",
+    "drinking_experience",
+    "drinking_frequency",
+    "smoking_status",
+    "urine_protein",
+    "urine_glucose",
+]
+
+
+@dataclass
+class SplitData:
+    x_train: pd.DataFrame
+    x_test: pd.DataFrame
+    y_train: pd.Series
+    y_test: pd.Series
 
 
 class KnhanesPreprocessor:
-    def __init__(self, usable_vars_path: str | Path):
+    def __init__(
+        self,
+        purpose: DataPurposeType,
+        usable_vars_path: Path = settings.DATA_DIR / "raw/knhanes/knhanes_usable_vars.json",
+        test_size: float = 0.2,
+        random_state: int = 42,
+        output_dir: Path = settings.DATA_DIR / "processed/knhanes",
+    ) -> None:
+        self.purpose = purpose
         self.usable_vars_path = usable_vars_path
         self.usable_vars_map = self._load_usable_vars_map()
         self.target_fields = self._get_target_fields()
-        self.processed_data_dir: Path = settings.DATA_DIR / "processed/knhanes"
+        self.output_dir: Path = output_dir / purpose.value
+        self.test_size: float = test_size
+        self.random_state: int = random_state
 
     def _load_usable_vars_map(self) -> list[dict[str, Any]]:
         with open(self.usable_vars_path, encoding="utf-8") as f:
@@ -24,35 +82,10 @@ class KnhanesPreprocessor:
         """KNHANES 변수명과 매핑된 필드명 딕셔너리 반환"""
         return [category["name"] for category in self.usable_vars_map]
 
-    def save_parquet(
-        self,
-        df: pd.DataFrame,
-        output_file_name: str,
-        compression: Literal["snappy", "gzip", "brotli", "lz4", "zstd"] = "snappy",
-    ) -> None:
-        """
-        전처리된 데이터를 Parquet으로 저장한다.
-        Args:
-            output_path: 저장할 parquet 파일 경로
-            compression: 압축 방식 (snappy, gzip, brotli, zstd)
-        """
-        if df is None:
-            raise ValueError("No processed dataframe. Call preprocess() first.")
-
-        output_path = self.processed_data_dir / output_file_name
-        if not self.processed_data_dir.exists():
-            self.processed_data_dir.mkdir(parents=True, exist_ok=True)
-
-        df.to_parquet(
-            output_path,
-            index=False,
-            compression=compression,
-        )
-
-    def preprocess(self, df: pd.DataFrame) -> pd.DataFrame:
+    def preprocess(self, df: pd.DataFrame) -> SplitData:
         """KNHANES raw 데이터를 전처리하여 학습/예측에 적합한 형태로 변환"""
         # 1. 필요한 변수만 추출
-        processed_df = df.reindex(columns=self.target_fields).copy().astype(object)
+        processed_df = df.reindex(columns=self.target_fields).copy()
 
         # 2. 컬럼명 변경 (KNHANES 변수명 -> 앱 내 식별 필드명)
         field_name_map = {
@@ -72,10 +105,32 @@ class KnhanesPreprocessor:
         # 5. 불필요한 변수 제거
         processed_df = self._drop_unusable_vars(processed_df)
 
-        return processed_df
+        # 6. 학습, 테스트 데이터 분할
+        split_data = self._split_train_test_dataset(processed_df)
+
+        # 7. 분할된 학습, 테스트 데이터 저장
+        self._save_train_test_dataset(split_data)
+        return split_data
+
+    def _split_train_test_dataset(
+        self,
+        df: pd.DataFrame,
+    ) -> SplitData:
+        target_var = TARGET_VAR_MAP[self.purpose]
+        # 학습에 사용되는 데이터프레임 분리
+        features = df.drop(target_var, axis=1)
+        # 정답지 데이터 프레임 분리
+        target = df[target_var]
+
+        # 학습, 테스트 데이터 분할
+        x_train, x_test, y_train, y_test = train_test_split(
+            features, target, test_size=self.test_size, random_state=self.random_state, stratify=target
+        )
+        return SplitData(x_train, x_test, y_train, y_test)
 
     def _clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """데이터 정제 (결측치 처리, 인코딩 등)"""
+        df = self._set_missing_values_in_categorical_features(df)
         df = self._clean_smoking_vars(df)
         df = self._clean_drinking_vars(df)
         df = self._clean_diagnosis_prevalence_vars(df)
@@ -97,17 +152,8 @@ class KnhanesPreprocessor:
 
         return df
 
-    @staticmethod
-    def _drop_unusable_vars(df: pd.DataFrame) -> pd.DataFrame:
-        drop_cols = [
-            "drinking_amount_per_session2",
-            "family_history_hypertension1",
-            "family_history_hypertension2",
-            "family_history_hypertension3",
-            "family_history_diabetes1",
-            "family_history_diabetes2",
-            "family_history_diabetes3",
-        ]
+    def _drop_unusable_vars(self, df: pd.DataFrame) -> pd.DataFrame:
+        drop_cols = UNNECESSARY_VAR_MAP["common"] + UNNECESSARY_VAR_MAP[self.purpose]
         return df.drop(columns=drop_cols)
 
     @staticmethod
@@ -195,7 +241,7 @@ class KnhanesPreprocessor:
             df.loc[mask, "smoking_fr_per_day"] = np.nan
 
             # 흡연 상태가 결측이면 일일흡연량도 결측치처리
-            is_status_nan = df["smoking_status"] == np.nan
+            is_status_nan = df["smoking_status"].isna()
             df.loc[is_status_nan, "smoking_fr_per_day"] = np.nan
 
             # 흡연 상태가 FORMER, NEVER이면 일일흡연량은 0으로 처리
@@ -277,11 +323,13 @@ class KnhanesPreprocessor:
             mask = df["has_diabetes_diagnosis"] == 0
             df.loc[mask, "diabetes_prevalence"] = 0
 
-            # 이제 pr 변수에 남아있는 8이나 9는 진짜 결측치이므로 NaN 처리
+        # 이제 pr 변수에 남아있는 8이나 9는 진짜 결측치이므로 NaN 처리
         for col in ["hypertension_prevalence", "diabetes_prevalence"]:
             if col in df.columns:
                 df.loc[df[col].isin([8, 9]), col] = np.nan
 
+        # 결측치가 포함된 행은 제거
+        df = df.dropna(subset=["hypertension_prevalence", "diabetes_prevalence"])
         return df
 
     @staticmethod
@@ -333,3 +381,20 @@ class KnhanesPreprocessor:
         ]
         mask = df[check_cols].notna().any(axis=1)
         return df.loc[mask].copy()
+
+    def _save_train_test_dataset(
+        self,
+        split_data: SplitData,
+        compression: Literal["snappy", "gzip", "brotli", "lz4", "zstd"] = "snappy",
+    ) -> None:
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        for k, v in asdict(split_data).items():
+            if isinstance(v, pd.Series):
+                v = v.to_frame()
+            v.to_parquet(self.output_dir / f"{k}.parquet", index=False, compression=compression)
+
+    def _set_missing_values_in_categorical_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        for col in CATEGORICAL_FEATURES:
+            if col in df.columns:
+                df[col] = df[col].astype("object").fillna("missing")
+        return df

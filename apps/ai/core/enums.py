@@ -29,3 +29,25 @@ class UrinalysisStatus(StrEnum):
     POSITIVE_2 = "2+"
     POSITIVE_3 = "3+"
     POSITIVE_4 = "4+"
+
+
+class DataPurposeType(StrEnum):
+    DIABETES_DIAGNOSIS = "diabetes_diagnosis"
+    DIABETES_RISK = "diabetes_risk"
+    HYPERTENSION_DIAGNOSIS = "hypertension_diagnosis"
+    HYPERTENSION_RISK = "hypertension_risk"
+
+
+class ModelType(StrEnum):
+    DIABETES_DIAGNOSIS = "diabetes_diagnosis"
+    DIABETES_RISK = "diabetes_risk"
+    HYPERTENSION_DIAGNOSIS = "hypertension_diagnosis"
+    HYPERTENSION_RISK = "hypertension_risk"
+
+
+class ModelAlgorithm(StrEnum):
+    RANDOM_FOREST = "RandomForest"
+    XGBOOST = "XGBoost"
+    LOGISTIC_REGRESSION = "LogisticRegression"
+    LIGHTGBM = "LightGBM"
+    GRADIENT_BOOSTING = "GradientBoosting"
