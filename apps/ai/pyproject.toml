@@ -66,6 +66,7 @@ select = [
     "N",   # pep8-naming
 ]
 ignore = [
+    "UP040",
     "UP046",
     "E501",
     "B008",
