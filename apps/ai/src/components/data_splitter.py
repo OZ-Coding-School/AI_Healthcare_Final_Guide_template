@@ -27,7 +27,7 @@ class DataSplitter:
 
     def __init__(
         self,
-        output_dir: Path,
+        output_dir: Path | str,
         train_size: float = 0.6,
         test_size: float = 0.2,
         val_size: float = 0.2,
@@ -37,7 +37,7 @@ class DataSplitter:
         self.test_size = test_size
         self.val_size = val_size
         self.random_state = random_state
-        self.output_dir = output_dir
+        self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         self._validate_split_ratio()
@@ -49,7 +49,7 @@ class DataSplitter:
         total = self.train_size + self.val_size + self.test_size
         if not 0 < self.train_size < 1:
             raise ValueError("train_size must be between 0 and 1")
-        if not 0 < self.val_size < 1:
+        if not 0 <= self.val_size < 1:
             raise ValueError("val_size must be between 0 and 1")
         if not 0 < self.test_size < 1:
             raise ValueError("test_size must be between 0 and 1")
@@ -72,6 +72,28 @@ class DataSplitter:
         """
         if target_var not in processed_df.columns:
             raise ValueError(f"Target variable '{target_var}' not found")
+
+        # 2-way split (Train / Test only)
+        if self.val_size == 0.0:
+            train, test = train_test_split(
+                processed_df,
+                test_size=self.test_size,
+                stratify=processed_df[target_var],
+                random_state=self.random_state,
+            )
+            X_train, y_train = self._split_features_target(train, target_var)
+            X_test, y_test = self._split_features_target(test, target_var)
+            X_validation = pd.DataFrame(columns=X_train.columns)
+            y_validation = pd.Series(dtype=y_train.dtype, name=y_train.name)
+
+            return SplitData(
+                X_train=X_train,
+                y_train=y_train,
+                X_validation=X_validation,
+                y_validation=y_validation,
+                X_test=X_test,
+                y_test=y_test,
+            )
 
         # 1. Test 분리
         train, temp = train_test_split(
@@ -126,7 +148,7 @@ class DataSplitter:
         """
         for name, data in vars(split_data).items():
             if isinstance(data, pd.Series):
-                data = data.to_frame()
+                data = data.to_frame() if data.name is not None else data.to_frame(name=name)
 
             data.to_parquet(self.output_dir / f"{name}.parquet", index=False, compression=compression)
 
