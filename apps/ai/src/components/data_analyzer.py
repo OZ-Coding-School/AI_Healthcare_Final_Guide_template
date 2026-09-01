@@ -1,3 +1,4 @@
+import platform
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -5,24 +6,36 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-plt.rcParams["font.family"] = "AppleGothic"
-plt.rcParams["axes.unicode_minus"] = False
+
+def setup_korean_font() -> None:
+    system_name = platform.system()
+    if system_name == "Darwin":
+        plt.rcParams["font.family"] = "AppleGothic"
+    elif system_name == "Windows":
+        plt.rcParams["font.family"] = "Malgun Gothic"
+    else:  # Linux / Docker
+        plt.rcParams["font.family"] = ["NanumGothic", "DejaVu Sans", "sans-serif"]
+    plt.rcParams["axes.unicode_minus"] = False
+
+
+setup_korean_font()
 
 
 class DataAnalyzer:
     def __init__(
         self,
         df: pd.DataFrame,
-        output_dir_path: Path,
+        output_dir_path: Path | str,
     ) -> None:
         if not isinstance(df, pd.DataFrame):
             raise TypeError("Expected pandas DataFrame")
         if df.empty:
             raise ValueError("DataFrame is empty")
         self.df = df
-        self.plot_dir = output_dir_path / "plots"
+        output_dir = Path(output_dir_path)
+        self.plot_dir = output_dir / "plots"
         self.plot_dir.mkdir(parents=True, exist_ok=True)
-        self.csv_dir = output_dir_path / "csv"
+        self.csv_dir = output_dir / "csv"
         self.csv_dir.mkdir(parents=True, exist_ok=True)
 
     def run_full_eda(self, target: str | None = None) -> None:
@@ -55,7 +68,7 @@ class DataAnalyzer:
         row_count = len(self.df)
         column_count = len(self.df.columns)
         numeric_feature_count = len(self.df.select_dtypes(include=["number"]).columns)
-        categorical_feature_count = len(self.df.select_dtypes(include=["object", "category"]).columns)
+        categorical_feature_count = len(self.df.select_dtypes(include=["object", "string", "category"]).columns)
 
         duplicated_row_count = self.df.duplicated().sum()
 
@@ -248,7 +261,7 @@ class DataAnalyzer:
         ! 주의: 범주형 변수의 category code 기반 상관계수는 탐색적 분석(EDA)을 위한 참고용으로만 사용해야 합니다.
         """
         df_corr = df.copy()
-        categorical_cols = df_corr.select_dtypes(include=["object", "category"]).columns
+        categorical_cols = df_corr.select_dtypes(include=["object", "string", "category"]).columns
 
         for col in categorical_cols:
             df_corr[col] = df_corr[col].astype("category").cat.codes
