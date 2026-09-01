@@ -279,8 +279,8 @@ class KnhanesPreprocessor:
         for var_name in has_disease_vars:
             if var_name in df.columns:
                 if var_name == target_var:
-                    df[var_name] = df[var_name].map({0: "N", 1: "Y", 8: np.nan, 9: np.nan}).astype("category")
-                # 타깃 변수가 아닌 경우 8(의사진단 받은적이 없어서 해당되지 않는 경우), 9(모른다고 답한경우)를 "UNKNOWN"으로 변환
+                    df[var_name] = df[var_name].map({0: 0, 1: 1, 8: 0, 9: np.nan})
+                # 9(모른다고 답한경우)를 "UNKNOWN"으로 변환
                 else:
                     df[var_name] = (
                         df[var_name]
@@ -288,15 +288,16 @@ class KnhanesPreprocessor:
                             {
                                 0: "N",
                                 1: "Y",
-                                8: "UNKNOWN",
+                                8: "N",
                                 9: "UNKNOWN",
                             }
                         )
                         .astype("category")
                     )
 
-        # 타깃 변수에 NaN 값이 있는 행을 제거하고 인덱스를 재설정
+        # 타깃 변수에 NaN 값이 있는 행을 제거하고 int형으로 변환 후 인덱스를 재설정
         df = df.dropna(subset=[target_var]).reset_index(drop=True)
+        df[target_var] = df[target_var].astype(int)
 
         return df
 
@@ -351,4 +352,5 @@ class KnhanesPreprocessor:
                 df[derived_field_name] = "0"
                 df.loc[has_unknown, derived_field_name] = "UNKNOWN"
                 df.loc[has_y, derived_field_name] = "1"
+                df[derived_field_name] = df[derived_field_name].astype("category")
         return df
