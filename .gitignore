@@ -15,4 +15,4 @@ wheels/
 .junie/
 node_modules/
 apps/ai/data/
-apps/ai/models/
+apps/ai/artifacts/
