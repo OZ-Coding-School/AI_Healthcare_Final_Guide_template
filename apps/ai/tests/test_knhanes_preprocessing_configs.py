@@ -9,6 +9,7 @@ from src.knhanes_preprocessing_configs import (
     MODEL_OFFICIAL_LABEL_VAR_MAP,
     MODEL_TARGET_VAR_MAP,
     MODEL_VARIABLES_MAP,
+    TRAINING_META_VARS,
 )
 
 
@@ -35,6 +36,11 @@ def test_input_vars_are_unique_and_defined(model_type: ModelType):
 
     assert len(input_vars) == len(set(input_vars))
     assert set(input_vars) <= defined_vars
+
+
+@pytest.mark.parametrize("model_type", list(ModelType))
+def test_training_meta_vars_are_forbidden_inputs(model_type: ModelType):
+    assert set(TRAINING_META_VARS) <= set(MODEL_FORBIDDEN_INPUT_VARS_MAP[model_type])
 
 
 def test_other_disease_status_stays_as_input():
