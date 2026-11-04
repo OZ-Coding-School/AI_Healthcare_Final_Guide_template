@@ -9,6 +9,7 @@ dependencies = [
     "joblib>=1.5.3",
     "lightgbm>=4.7.0",
     "matplotlib>=3.11.1",
+    "optuna>=5.0.0",
     "pandas>=3.0.3",
     "pyarrow>=25.0.0",
     "pydantic>=2.12.5",
