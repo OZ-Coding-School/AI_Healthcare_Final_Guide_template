@@ -271,3 +271,73 @@ MODEL_TARGET_VAR_MAP = {
     ModelType.DIABETES_RISK: "DE1_pr",
     ModelType.HYPERTENSION_RISK: "DI1_pr",
 }
+
+# 변수 역할 분리 기준: 제8·9기 원시자료 이용지침서와 2020~2024 원시자료 대조 결과
+# MODEL_VARIABLES_MAP의 타겟 변수는 라벨 생성 단계가 구현될 때까지 전처리기 호환을 위해 유지한다.
+
+# 식별·분할 변수: ID_fam은 가구 단위 분할, year는 연도 단위 분할에 사용
+IDENTIFIER_VARS = ["ID", "ID_fam", "year"]
+
+# 표본 설계 변수: 가중치, 층, 집락
+SURVEY_DESIGN_VARS = ["wt_itvex", "wt_tot", "kstrata", "psu"]
+
+# 학습 제외 변수: HE_prg = 1 또는 HE_dprg(임신개월수) 값이 있으면 임신 중 응답자
+PREGNANCY_EXCLUSION_VARS = ["HE_prg", "HE_dprg"]
+
+# 입력 피처 제외 변수: HE_fh는 2023~2024년 하위 항목과 불일치, HE_insulin은 2022년부터 미제공
+UNUSABLE_INPUT_VARS = ["HE_fh", "HE_insulin"]
+
+# 라벨 생성에 사용하는 원천 변수
+MODEL_LABEL_SOURCE_VARS_MAP = {
+    ModelType.DIABETES_RISK: [
+        "DE1_dg",  # 의사 진단 (1 = 있음)
+        "DE1_31",  # 인슐린 (1 = 예)
+        "DE1_32",  # 당뇨병약 (1 = 예)
+        "HE_glu",  # 공복혈당 (126 mg/dL 이상)
+        "HE_fst",  # 공복 시간 (8시간 이상일 때만 공복혈당 사용)
+        "HE_HbA1c",  # 당화혈색소 (6.5% 이상)
+    ],
+    ModelType.HYPERTENSION_RISK: [
+        "DI1_pr",  # 현재 유병 (1 = 있음)
+        "DI1_2",  # 혈압조절제 복용 (1~4 = 복용, 5 = 미복용)
+        "HE_sbp",  # 수축기 혈압 (140 mmHg 이상)
+        "HE_dbp",  # 이완기 혈압 (90 mmHg 이상)
+    ],
+}
+
+# 공식 분류 변수: 생성한 라벨의 대조에만 사용
+# HE_DM_HbA1c = 3이 당뇨병, HE_HP는 2020~2021년 3, 2022년부터 4가 고혈압
+MODEL_OFFICIAL_LABEL_VAR_MAP = {
+    ModelType.DIABETES_RISK: "HE_DM_HbA1c",
+    ModelType.HYPERTENSION_RISK: "HE_HP",
+}
+
+# 라벨 원천은 아니지만 해당 질환의 진단 정보를 담고 있는 변수
+MODEL_DIAGNOSIS_PROXY_VARS_MAP = {
+    ModelType.DIABETES_RISK: ["DE1_pr"],
+    ModelType.HYPERTENSION_RISK: ["DI1_dg"],
+}
+
+# 모델별 입력 피처: 공통 입력과 모델별 입력에서 타겟 변수를 제외한 목록
+MODEL_INPUT_VARS_MAP = {
+    model_type: [
+        var_name
+        for var_name in MODEL_VARIABLES_MAP["common"] + MODEL_VARIABLES_MAP[model_type]
+        if var_name != target_var
+    ]
+    for model_type, target_var in MODEL_TARGET_VAR_MAP.items()
+}
+
+# 모델별 입력 금지 변수
+MODEL_FORBIDDEN_INPUT_VARS_MAP = {
+    model_type: [
+        *IDENTIFIER_VARS,
+        *SURVEY_DESIGN_VARS,
+        *PREGNANCY_EXCLUSION_VARS,
+        *UNUSABLE_INPUT_VARS,
+        *MODEL_OFFICIAL_LABEL_VAR_MAP.values(),
+        *MODEL_LABEL_SOURCE_VARS_MAP[model_type],
+        *MODEL_DIAGNOSIS_PROXY_VARS_MAP[model_type],
+    ]
+    for model_type in MODEL_TARGET_VAR_MAP
+}
