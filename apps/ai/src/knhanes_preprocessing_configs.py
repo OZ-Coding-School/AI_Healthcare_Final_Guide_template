@@ -273,13 +273,16 @@ MODEL_TARGET_VAR_MAP = {
 }
 
 # 변수 역할 분리 기준: 제8·9기 원시자료 이용지침서와 2020~2024 원시자료 대조 결과
-# MODEL_VARIABLES_MAP의 타겟 변수는 라벨 생성 단계가 구현될 때까지 전처리기 호환을 위해 유지한다.
+# MODEL_VARIABLES_MAP에는 기존 타겟 변수가 남아 있으므로 모델 입력은 MODEL_INPUT_VARS_MAP을 사용한다.
 
 # 식별·분할 변수: ID_fam은 가구 단위 분할, year는 연도 단위 분할에 사용
 IDENTIFIER_VARS = ["ID", "ID_fam", "year"]
 
 # 표본 설계 변수: 가중치, 층, 집락
 SURVEY_DESIGN_VARS = ["wt_itvex", "wt_tot", "kstrata", "psu"]
+
+# 학습용 데이터에 유지하는 메타 변수: 분할과 평가에만 사용하고 모델 입력(X)에서는 제거
+TRAINING_META_VARS = [*IDENTIFIER_VARS, *SURVEY_DESIGN_VARS]
 
 # 학습 제외 변수: HE_prg = 1 또는 HE_dprg(임신개월수) 값이 있으면 임신 중 응답자
 PREGNANCY_EXCLUSION_VARS = ["HE_prg", "HE_dprg"]
