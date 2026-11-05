@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import (
     accuracy_score,
+    auc as calculate_auc,
     classification_report,
     confusion_matrix,
     f1_score,
@@ -35,6 +36,7 @@ class EvaluationMetrics:
     specificity: float
     threshold: float = 0.5
     auc: float | None = None
+    pr_auc: float | None = None
 
 
 @dataclass
@@ -119,7 +121,11 @@ class ModelEvaluator:
 
         y_prob = None
         if hasattr(self.model, "predict_proba"):
-            y_prob = self.model.predict_proba(x_test_proc)[:, 1]
+            classes = np.asarray(self.model.classes_)
+            positive_class_indices = np.flatnonzero(classes == 1)
+            if positive_class_indices.size != 1:
+                raise ValueError("Model must contain exactly one positive class labeled 1")
+            y_prob = self.model.predict_proba(x_test_proc)[:, positive_class_indices[0]]
             if self.bundle is not None:
                 y_prob = self.bundle.calibrate(y_prob)
         elif hasattr(self.model, "decision_function"):
@@ -145,11 +151,18 @@ class ModelEvaluator:
             specificity = 0.0
 
         auc: float | None = None
+        pr_auc: float | None = None
         if y_prob is not None:
             try:
                 auc = float(roc_auc_score(self.y_test, y_prob))
             except ValueError:
                 auc = None
+
+            try:
+                precision_curve, recall_curve, _ = precision_recall_curve(self.y_test, y_prob)
+                pr_auc = float(calculate_auc(recall_curve, precision_curve))
+            except ValueError:
+                pr_auc = None
 
         metrics = EvaluationMetrics(
             model=self.model.__class__.__name__,
@@ -160,6 +173,7 @@ class ModelEvaluator:
             specificity=float(specificity),
             threshold=float(self.threshold),
             auc=auc,
+            pr_auc=pr_auc,
         )
 
         # 예측 결과 classification report 도출
