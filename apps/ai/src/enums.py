@@ -44,6 +44,12 @@ class ModelType(StrEnum):
     HYPERTENSION_RISK = "hypertension_risk"
 
 
+class KnhanesTrainSet(StrEnum):
+    TRAIN_A = "train_a"  # 2020~2023년, HbA1c·AST·ALT 전환
+    TRAIN_A_TG = "train_a_tg"  # Train A에 중성지방 전환 추가
+    TRAIN_B = "train_b"  # 2022~2023년, 전환 없음
+
+
 class ModelAlgorithm(StrEnum):
     RANDOM_FOREST = "RandomForest"
     XGBOOST = "XGBoost"
