@@ -1,4 +1,5 @@
 import json
+from dataclasses import asdict
 from pathlib import Path
 
 import pandas as pd
@@ -6,9 +7,12 @@ import pandas as pd
 from core.config import settings
 from core.logger import configure_logger
 from src.components.data_preprocessor import KnhanesPreprocessor
+from src.components.data_splitter import DataSplitter, KnhanesSplitData, KnhanesYearGroupSplitter
+from src.components.knhanes_lab_harmonizer import KnhanesLabHarmonizer
 from src.components.knhanes_label_builder import KnhanesLabelBuilder, KnhanesLabelReport
 from src.components.knhanes_multi_year_loader import KnhanesMultiYearLoader, KnhanesQualityReport
-from src.enums import ModelType
+from src.enums import KnhanesTrainSet, ModelType
+from src.knhanes_split_configs import KNHANES_TRAIN_SET_RULES_MAP
 
 logger = configure_logger("KNHANES Pipeline")
 
@@ -18,6 +22,8 @@ QUALITY_REPORT_PATH = settings.MODEL_REPORT_DIR / "knhanes_quality_report.json"
 LABELED_DATA_DIR = settings.DATA_DIR / "interim" / "labeled"
 LABEL_REPORT_PATH = settings.MODEL_REPORT_DIR / "knhanes_label_report.json"
 PREPROCESSED_DATA_DIR = settings.DATA_DIR / "interim" / "preprocessed"
+SPLIT_DATA_DIR = settings.DATA_DIR / "processed" / "knhanes"
+SPLIT_REPORT_PATH = settings.MODEL_REPORT_DIR / "knhanes_split_report.json"
 
 
 def run_knhanes_merge(
@@ -90,7 +96,48 @@ def run_knhanes_preprocessing(
     return results
 
 
+def run_knhanes_split(
+    preprocessed_data_dir: Path = PREPROCESSED_DATA_DIR,
+    split_data_dir: Path = SPLIT_DATA_DIR,
+    split_report_path: Path = SPLIT_REPORT_PATH,
+) -> dict[ModelType, dict[KnhanesTrainSet, KnhanesSplitData]]:
+    splitter = KnhanesYearGroupSplitter()
+    results: dict[ModelType, dict[KnhanesTrainSet, KnhanesSplitData]] = {}
+
+    for model_type in ModelType:
+        preprocessed_data_path = preprocessed_data_dir / f"{model_type}.parquet"
+        if not preprocessed_data_path.exists():
+            raise FileNotFoundError(f"Preprocessed KNHANES data not found: {preprocessed_data_path}")
+
+        preprocessed_df = pd.read_parquet(preprocessed_data_path)
+        groups = splitter.assign_groups(preprocessed_df)
+        harmonizer = KnhanesLabHarmonizer(model_type)
+        results[model_type] = {
+            train_set: splitter.split(harmonizer.transform(preprocessed_df, rules), groups, train_set)
+            for train_set, rules in KNHANES_TRAIN_SET_RULES_MAP.items()
+        }
+
+    # 모든 구성이 성공한 뒤 저장해 일부만 갱신된 상태를 남기지 않습니다.
+    report: dict[str, dict[str, object]] = {}
+    for model_type, split_by_train_set in results.items():
+        report[str(model_type)] = {}
+        for train_set, split_data in split_by_train_set.items():
+            DataSplitter(output_dir=split_data_dir / model_type / train_set).save_to_parquet(split_data)
+            report[str(model_type)][str(train_set)] = {
+                "splits": splitter.summarize(split_data),
+                "harmonization_rules": [asdict(rule) for rule in KNHANES_TRAIN_SET_RULES_MAP[train_set]],
+            }
+
+    split_report_path.parent.mkdir(parents=True, exist_ok=True)
+    split_report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    logger.info("Saved split data to %s", split_data_dir)
+    logger.info("Saved split report to %s", split_report_path)
+    return results
+
+
 if __name__ == "__main__":
     run_knhanes_merge()
     run_knhanes_labeling()
     run_knhanes_preprocessing()
+    run_knhanes_split()
