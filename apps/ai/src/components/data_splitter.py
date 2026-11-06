@@ -1,9 +1,30 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedGroupKFold, train_test_split
+
+from src.components.knhanes_multi_year_loader import YEAR_VAR, KnhanesDataValidationError
+from src.enums import KnhanesTrainSet
+from src.knhanes_label_configs import DISEASE_LABEL_VAR
+from src.knhanes_preprocessing_configs import TRAINING_META_VARS
+from src.knhanes_split_configs import (
+    KNHANES_DEVELOPMENT_YEARS,
+    KNHANES_EARLY_TRAIN_YEARS,
+    KNHANES_EARLY_YEAR_TRAIN_SETS,
+    KNHANES_SPLIT_RANDOM_STATE,
+    KNHANES_TEST_YEARS,
+    KNHANES_VALIDATION_FOLDS,
+)
+
+ID_VAR = "ID"
+HOUSEHOLD_VAR = "ID_fam"
+
+EARLY_TRAIN_GROUP = "early_train"
+TRAIN_GROUP = "train"
+VALIDATION_GROUP = "validation"
+TEST_GROUP = "test"
 
 
 @dataclass
@@ -14,6 +35,13 @@ class SplitData:
     y_validation: pd.Series
     X_test: pd.DataFrame
     y_test: pd.Series
+
+
+@dataclass
+class KnhanesSplitData(SplitData):
+    meta_train: pd.DataFrame
+    meta_validation: pd.DataFrame
+    meta_test: pd.DataFrame
 
 
 class DataSplitter:
@@ -161,3 +189,121 @@ class DataSplitter:
         y = df[target_var]
 
         return X, y
+
+
+class KnhanesYearGroupSplitter:
+    def __init__(
+        self,
+        validation_folds: int = KNHANES_VALIDATION_FOLDS,
+        random_state: int = KNHANES_SPLIT_RANDOM_STATE,
+    ) -> None:
+        if validation_folds < 2:
+            raise ValueError("validation_folds must be at least 2")
+        self.validation_folds = validation_folds
+        self.random_state = random_state
+
+    def assign_groups(self, df: pd.DataFrame) -> pd.Series:
+        """
+        행마다 분할 그룹을 정합니다. 전환 전 데이터로 한 번만 정해 학습 구성이 같은 Validation과 Test를 쓰게 합니다.
+
+        - 2020~2021년: early_train
+        - 2022~2023년: 같은 가구가 나뉘지 않도록 train과 validation으로 분할
+        - 2024년: test
+        """
+        self._validate_input(df)
+
+        groups = pd.Series(TEST_GROUP, index=df.index, name="split_group", dtype="object")
+        groups[df[YEAR_VAR].isin(KNHANES_EARLY_TRAIN_YEARS)] = EARLY_TRAIN_GROUP
+
+        development_df = df[df[YEAR_VAR].isin(KNHANES_DEVELOPMENT_YEARS)].sort_values(ID_VAR)
+        fold_splitter = StratifiedGroupKFold(
+            n_splits=self.validation_folds,
+            shuffle=True,
+            random_state=self.random_state,
+        )
+        train_positions, validation_positions = next(
+            fold_splitter.split(development_df, development_df[DISEASE_LABEL_VAR], development_df[HOUSEHOLD_VAR])
+        )
+        groups[development_df.index[train_positions]] = TRAIN_GROUP
+        groups[development_df.index[validation_positions]] = VALIDATION_GROUP
+
+        self._validate_groups(df, groups)
+        return groups
+
+    def split(self, df: pd.DataFrame, groups: pd.Series, train_set: KnhanesTrainSet) -> KnhanesSplitData:
+        """
+        분할 그룹에 따라 학습 구성의 X, y, 메타 데이터를 만듭니다.
+        메타 변수는 연도별 성능 확인과 가중 평가에만 쓰도록 X에서 분리합니다.
+        """
+        train_groups = [TRAIN_GROUP]
+        if train_set in KNHANES_EARLY_YEAR_TRAIN_SETS:
+            train_groups.append(EARLY_TRAIN_GROUP)
+
+        X_train, y_train, meta_train = self._split_columns(df[groups.isin(train_groups)])
+        X_validation, y_validation, meta_validation = self._split_columns(df[groups.eq(VALIDATION_GROUP)])
+        X_test, y_test, meta_test = self._split_columns(df[groups.eq(TEST_GROUP)])
+
+        return KnhanesSplitData(
+            X_train=X_train,
+            y_train=y_train,
+            X_validation=X_validation,
+            y_validation=y_validation,
+            X_test=X_test,
+            y_test=y_test,
+            meta_train=meta_train,
+            meta_validation=meta_validation,
+            meta_test=meta_test,
+        )
+
+    @staticmethod
+    def summarize(split_data: KnhanesSplitData) -> dict[str, dict[str, Any]]:
+        summary: dict[str, dict[str, Any]] = {}
+        for name in ["train", "validation", "test"]:
+            labels: pd.Series = getattr(split_data, f"y_{name}")
+            meta: pd.DataFrame = getattr(split_data, f"meta_{name}")
+            summary[name] = {
+                "rows": len(labels),
+                "households": int(meta[HOUSEHOLD_VAR].nunique()),
+                "positive": int(labels.sum()),
+                "positive_rate": round(float(labels.mean()), 4),
+                "years": sorted(int(year) for year in meta[YEAR_VAR].unique()),
+            }
+        return summary
+
+    @staticmethod
+    def _split_columns(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
+        return (
+            df.drop(columns=[*TRAINING_META_VARS, DISEASE_LABEL_VAR]).reset_index(drop=True),
+            df[DISEASE_LABEL_VAR].reset_index(drop=True),
+            df[TRAINING_META_VARS].reset_index(drop=True),
+        )
+
+    def _validate_input(self, df: pd.DataFrame) -> None:
+        required_vars = [*TRAINING_META_VARS, DISEASE_LABEL_VAR]
+        missing_vars = [var_name for var_name in required_vars if var_name not in df.columns]
+        if missing_vars:
+            raise KnhanesDataValidationError(f"Missing split columns: {missing_vars}")
+
+        split_vars = [ID_VAR, HOUSEHOLD_VAR, YEAR_VAR, DISEASE_LABEL_VAR]
+        columns_with_missing = [var_name for var_name in split_vars if df[var_name].isna().any()]
+        if columns_with_missing:
+            raise KnhanesDataValidationError(f"Split columns have missing values: {columns_with_missing}")
+
+        if df[ID_VAR].duplicated().any():
+            raise KnhanesDataValidationError(f"{ID_VAR} must be unique")
+
+        expected_years = {*KNHANES_EARLY_TRAIN_YEARS, *KNHANES_DEVELOPMENT_YEARS, *KNHANES_TEST_YEARS}
+        actual_years = set(df[YEAR_VAR].unique())
+        if actual_years != expected_years:
+            raise KnhanesDataValidationError(
+                f"Split years must be {sorted(expected_years)}, got {sorted(actual_years)}"
+            )
+
+    @staticmethod
+    def _validate_groups(df: pd.DataFrame, groups: pd.Series) -> None:
+        """
+        같은 가구가 여러 그룹에 있으면 가족 간 유사성이 평가 데이터로 새어 나갑니다.
+        """
+        group_counts = groups.groupby(df[HOUSEHOLD_VAR]).nunique()
+        if group_counts.gt(1).any():
+            raise KnhanesDataValidationError(f"Households across split groups: {int(group_counts.gt(1).sum())}")

@@ -13,6 +13,8 @@ from src.components.model_trainer import BinaryClassificationModelTrainer
 from src.components.shap_explainer import ShapExplainer
 from src.components.threshold_optimizer import ThresholdOptimizer
 from src.enums import ModelAlgorithm, ModelType
+from src.knhanes_label_configs import DISEASE_LABEL_VAR
+from src.knhanes_preprocessing_configs import TRAINING_META_VARS
 
 
 @pytest.fixture
@@ -75,16 +77,26 @@ def test_full_ml_pipeline_e2e(raw_knhanes_dataset: Path, tmp_path: Path):
     assert (eda_dir / "csv" / "dataset_summary.csv").exists()
     assert (eda_dir / "plots" / "all_variables_correlation_matrix.png").exists()
 
-    # 3. KnhanesPreprocessor: 도메인 전처리 및 라벨링
+    # 3. KnhanesPreprocessor: 라벨이 생성된 데이터의 도메인 전처리
+    labeled_df = raw_df.assign(
+        ID=[f"A{index}" for index in range(len(raw_df))],
+        ID_fam=[f"F{index}" for index in range(len(raw_df))],
+        year=2022,
+        wt_itvex=1.0,
+        wt_tot=1.0,
+        kstrata=1,
+        psu=1,
+        disease_label=raw_df["DE1_pr"],
+    )
     preprocessed_dir = pipeline_dir / "preprocessed"
     preprocessor = KnhanesPreprocessor(
         use_case=ModelType.DIABETES_RISK,
         output_dir=preprocessed_dir,
     )
-    clean_df = preprocessor.preprocess(raw_df)
+    clean_df = preprocessor.preprocess_labeled(labeled_df)
     preprocessor.save(clean_df)
     assert (preprocessed_dir / f"{ModelType.DIABETES_RISK}.parquet").exists()
-    assert "당뇨병 유병 여부" in clean_df.columns
+    assert DISEASE_LABEL_VAR in clean_df.columns
     assert "당뇨병 가족력 보유 여부" in clean_df.columns
 
     # 4. DataSplitter: Stratified 분할 (Train/Val/Test)
@@ -96,7 +108,7 @@ def test_full_ml_pipeline_e2e(raw_knhanes_dataset: Path, tmp_path: Path):
         test_size=0.2,
         random_state=42,
     )
-    split_data = splitter.split(clean_df, target_var="당뇨병 유병 여부")
+    split_data = splitter.split(clean_df.drop(columns=TRAINING_META_VARS), target_var=DISEASE_LABEL_VAR)
     splitter.save_to_parquet(split_data)
     assert (split_dir / "X_train.parquet").exists()
     assert (split_dir / "y_test.parquet").exists()
