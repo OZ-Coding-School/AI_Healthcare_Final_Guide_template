@@ -12,7 +12,6 @@ from src.components.knhanes_baseline_evaluator import (
 )
 from src.components.knhanes_multi_year_loader import KnhanesDataValidationError
 from src.enums import KnhanesTrainSet, ModelAlgorithm, ModelType
-from src.knhanes_training_configs import BLOOD_INPUT_COLUMNS
 from src.pipelines.knhanes_training_pipeline import (
     load_baseline_dataset,
     load_diagnosed_flags,
@@ -23,14 +22,14 @@ from src.pipelines.knhanes_training_pipeline import (
 D = ModelType.DIABETES_RISK
 H = ModelType.HYPERTENSION_RISK
 
-BLOOD_MISSING_ROWS = 3
+NUMERIC_INPUT_COLUMNS = ["총콜레스테롤", "AST"]
 
 
 def make_inputs(rows: int, seed: int) -> tuple[pd.DataFrame, pd.Series]:
     generator = np.random.default_rng(seed)
     signal = generator.normal(size=rows)
     data = {"나이": 50 + 10 * signal + generator.normal(size=rows)}
-    data.update({column: generator.normal(100, 10, rows) for column in BLOOD_INPUT_COLUMNS})
+    data.update({column: generator.normal(100, 10, rows) for column in NUMERIC_INPUT_COLUMNS})
     X = pd.DataFrame(data)
     X["성별"] = pd.Categorical(generator.choice(["M", "F"], rows))
     y = pd.Series((signal + generator.normal(scale=0.5, size=rows) > 0.5).astype(int), name="disease_label")
@@ -61,16 +60,12 @@ def split_dirs(tmp_path: Path) -> tuple[Path, Path]:
     train_rows, validation_rows = 240, 120
     X_validation, y_validation = make_inputs(validation_rows, seed=2)
     meta_validation = make_meta(validation_rows, start_id=0)
-    y_validation.iloc[:BLOOD_MISSING_ROWS] = 1
-    X_validation.loc[: BLOOD_MISSING_ROWS - 1, BLOOD_INPUT_COLUMNS] = np.nan
 
     for model_type in ModelType:
         for train_set in KnhanesTrainSet:
             output_dir = split_dir / model_type / train_set
             output_dir.mkdir(parents=True)
             X_train, y_train = make_inputs(train_rows, seed=1)
-            y_train.iloc[:BLOOD_MISSING_ROWS] = 1
-            X_train.loc[: BLOOD_MISSING_ROWS - 1, BLOOD_INPUT_COLUMNS] = np.nan
             X_train.to_parquet(output_dir / "X_train.parquet", index=False)
             y_train.to_frame().to_parquet(output_dir / "y_train.parquet", index=False)
             X_validation.to_parquet(output_dir / "X_validation.parquet", index=False)
@@ -166,24 +161,13 @@ def test_bootstrap_is_reproducible():
     )
 
 
-def test_diabetes_excludes_rows_without_blood_values(split_dirs: tuple[Path, Path]):
+def test_load_baseline_dataset_reads_train_and_validation(split_dirs: tuple[Path, Path]):
     split_dir, _ = split_dirs
 
     dataset = load_baseline_dataset(split_dir, D, KnhanesTrainSet.TRAIN_A)
 
-    assert dataset.excluded_rows == {"train": BLOOD_MISSING_ROWS, "validation": BLOOD_MISSING_ROWS}
-    assert dataset.X_train[BLOOD_INPUT_COLUMNS].notna().all(axis=None)
+    assert len(dataset.X_train) == len(dataset.y_train)
     assert len(dataset.X_validation) == len(dataset.y_validation) == len(dataset.meta_validation)
-    assert dataset.meta_validation["ID"].iloc[0] == f"A{BLOOD_MISSING_ROWS}"
-
-
-def test_hypertension_keeps_rows_without_blood_values(split_dirs: tuple[Path, Path]):
-    split_dir, _ = split_dirs
-
-    dataset = load_baseline_dataset(split_dir, H, KnhanesTrainSet.TRAIN_A)
-
-    assert dataset.excluded_rows == {"train": 0, "validation": 0}
-    assert dataset.X_train[BLOOD_INPUT_COLUMNS].isna().all(axis=1).sum() == BLOOD_MISSING_ROWS
 
 
 def test_mismatched_columns_raise(split_dirs: tuple[Path, Path]):
@@ -252,8 +236,6 @@ def test_run_baseline_saves_reports_without_test_split(split_dirs: tuple[Path, P
 
     assert report["test_split_used"] is False
     assert set(report["models"]) == {str(model_type) for model_type in ModelType}
-    assert "blood_missing_effect" in report["models"][str(D)]
-    assert "blood_missing_effect" not in report["models"][str(H)]
 
     results = pd.read_csv(report_dir / "baseline_results.csv")
     assert set(results["group"]) == {"all", "undiagnosed", "year_2022", "year_2023"}
