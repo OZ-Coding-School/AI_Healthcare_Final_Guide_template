@@ -138,7 +138,10 @@ def test_full_ml_pipeline_e2e(raw_knhanes_dataset: Path, tmp_path: Path):
     assert isinstance(val_proc, np.ndarray)
 
     # 6. ThresholdOptimizer: 검증 세트 기반 최적 임계값 탐색
-    val_probs = bundle.model.predict_proba(val_proc)[:, 1]
+    positive_class_indices = np.flatnonzero(np.asarray(bundle.model.classes_) == 1)
+    if positive_class_indices.size != 1:
+        raise ValueError("Model must contain exactly one positive class labeled 1")
+    val_probs = bundle.model.predict_proba(val_proc)[:, positive_class_indices[0]]
     optimizer = ThresholdOptimizer(
         min_recall=0.7,
         strategy="f1",
