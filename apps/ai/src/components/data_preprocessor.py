@@ -16,6 +16,8 @@ from src.enums import (
 from src.knhanes_label_configs import DISEASE_LABEL_VAR
 from src.knhanes_merge_configs import KNHANES_ADULT_MIN_AGE, KNHANES_EXPECTED_CODES_MAP
 from src.knhanes_preprocessing_configs import (
+    BLOOD_INPUT_VARS,
+    BLOOD_MISSING_EXCLUDED_MODELS,
     KNHANES_VARIABLES_CONFIG_MAP,
     MODEL_FORBIDDEN_INPUT_VARS_MAP,
     MODEL_INPUT_VARS_MAP,
@@ -74,6 +76,7 @@ class KnhanesPreprocessor:
         입력 피처에 분할·평가에 쓰는 메타 변수와 라벨을 붙여 반환합니다.
         """
         self._validate_labeled_data(labeled_df)
+        labeled_df = self._exclude_blood_missing_rows(labeled_df)
 
         features = self.preprocess(labeled_df)
         meta = labeled_df[[*TRAINING_META_VARS, DISEASE_LABEL_VAR]].reset_index(drop=True)
@@ -126,6 +129,19 @@ class KnhanesPreprocessor:
 
         if not df[AGE_VAR].ge(KNHANES_ADULT_MIN_AGE).all():
             raise KnhanesDataValidationError(f"{self.use_case}: labeled data must only contain adults")
+
+    def _exclude_blood_missing_rows(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        혈액 지표가 모두 없는 행을 학습 데이터에서 제외합니다.
+        이 행은 양성만 남아, 모델이 혈액 수치 미입력을 질환 신호로 학습하는 것을 막습니다.
+        """
+        if self.use_case not in BLOOD_MISSING_EXCLUDED_MODELS:
+            return df
+
+        filtered_df = df[df[BLOOD_INPUT_VARS].notna().any(axis=1)]
+        if filtered_df.empty:
+            raise KnhanesDataValidationError(f"{self.use_case}: no rows have blood test values")
+        return filtered_df
 
     def _validate_no_forbidden_columns(self, df: pd.DataFrame) -> None:
         label_by_var_name = {var["name"]: var["label"] for var in self.vars_config_map}

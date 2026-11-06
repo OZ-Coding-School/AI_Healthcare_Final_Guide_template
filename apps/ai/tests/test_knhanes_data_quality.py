@@ -73,6 +73,9 @@ SCENARIOS: list[dict[str, Any]] = [
     {"DI1_pr": 9.0},
     {"HE_sbp": np.nan},
     {"HE_HbA1c": np.nan},
+    # 혈액 지표가 모두 없는 진단자: 당뇨 학습에서만 제외됩니다.
+    {"DE1_dg": 1.0, "HE_chol": np.nan, "HE_HDL_st2": np.nan, "HE_TG": np.nan}
+    | {"HE_ast": np.nan, "HE_alt": np.nan, "HE_crea": np.nan},
 ]
 
 
@@ -197,6 +200,9 @@ def expected_labels(merged_df: pd.DataFrame, model_type: ModelType) -> pd.Series
 
     answered = responses.notna().all(axis=1) & responses.ne(9).all(axis=1)
     labelable = positive | (measured & answered)
+    if model_type == D:
+        blood_columns = ["HE_chol", "HE_HDL_st2", "HE_TG", "HE_ast", "HE_alt", "HE_crea"]
+        labelable &= adults[blood_columns].notna().any(axis=1)
     return pd.Series(positive[labelable].astype(int).to_numpy(), index=adults.loc[labelable, "ID"]).sort_index()
 
 
@@ -427,19 +433,7 @@ def test_no_single_input_nearly_reproduces_label(real_artifacts: KnhanesArtifact
     assert suspicious == {}
 
 
-@pytest.mark.parametrize(
-    "model_type",
-    [
-        pytest.param(
-            D,
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason="음성 확정에 혈액검사가 필요해 혈액 지표 결측 행이 양성만 남습니다. 처리 방침 결정 필요",
-            ),
-        ),
-        H,
-    ],
-)
+@pytest.mark.parametrize("model_type", list(ModelType))
 def test_missing_input_does_not_reveal_label(real_artifacts: KnhanesArtifacts, model_type: ModelType):
     split_data = load_split(real_artifacts, model_type, KnhanesTrainSet.TRAIN_A)
     X, y = split_data.X["train"], split_data.y["train"]

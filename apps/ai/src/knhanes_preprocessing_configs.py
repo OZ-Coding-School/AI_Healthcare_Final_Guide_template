@@ -287,6 +287,11 @@ TRAINING_META_VARS = [*IDENTIFIER_VARS, *SURVEY_DESIGN_VARS]
 # 학습 제외 변수: HE_prg = 1 또는 HE_dprg(임신개월수) 값이 있으면 임신 중 응답자
 PREGNANCY_EXCLUSION_VARS = ["HE_prg", "HE_dprg"]
 
+# 학습 제외 기준: 혈액 지표가 모두 없으면 음성을 확정할 수 없어 양성만 남습니다.
+# 결측 여부가 라벨을 드러내므로 해당 질환의 학습 데이터에서 제외합니다. 추론 입력에는 적용하지 않습니다.
+BLOOD_INPUT_VARS = ["HE_chol", "HE_HDL_st2", "HE_TG", "HE_ast", "HE_alt", "HE_crea"]
+BLOOD_MISSING_EXCLUDED_MODELS = [ModelType.DIABETES_RISK]
+
 # 입력 피처 제외 변수: HE_fh는 2023~2024년 하위 항목과 불일치, HE_insulin은 2022년부터 미제공
 UNUSABLE_INPUT_VARS = ["HE_fh", "HE_insulin"]
 

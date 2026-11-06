@@ -194,9 +194,9 @@ def test_run_knhanes_split_requires_preprocessed_files(tmp_path: Path):
 def test_real_data_matches_designed_split(tmp_path: Path):
     results = run_knhanes_split(split_data_dir=tmp_path / "split", split_report_path=tmp_path / "split.json")
 
-    expected_positive = {D: 4_710, H: 10_016}
-    expected_rows = {D: 27_404, H: 28_397}
-    expected_test = {D: 5_685, H: 5_959}
+    expected_positive = {D: 4_555, H: 10_016}
+    expected_rows = {D: 27_249, H: 28_397}
+    expected_test = {D: 5_649, H: 5_959}
     for model_type in ModelType:
         train_a = results[model_type][KnhanesTrainSet.TRAIN_A]
         train_b = results[model_type][KnhanesTrainSet.TRAIN_B]
