@@ -20,11 +20,6 @@ BASELINE_HYPERPARAMETERS_MAP: dict[ModelAlgorithm, dict[str, Any]] = {
 BASELINE_BOOTSTRAP_ITERATIONS = 1000
 BASELINE_CONFIDENCE_LEVEL = 0.95
 
-# 혈액 지표가 모두 없는 행은 음성으로 확정할 수 없어 양성만 남습니다.
-# 결측 여부가 라벨을 드러내므로 해당 질환의 학습과 평가에서 제외합니다.
-BLOOD_INPUT_COLUMNS = ["총콜레스테롤", "HDL-콜레스테롤", "중성지방", "AST", "ALT", "혈중크레아티닌"]
-BLOOD_MISSING_EXCLUDED_MODELS = [ModelType.DIABETES_RISK]
-
 # 값이 코드 목록에 있으면 이미 진단·치료 중인 응답자입니다.
 MODEL_DIAGNOSED_CODES_MAP: dict[ModelType, dict[str, list[int]]] = {
     ModelType.DIABETES_RISK: {"DE1_dg": [1], "DE1_31": [1], "DE1_32": [1]},

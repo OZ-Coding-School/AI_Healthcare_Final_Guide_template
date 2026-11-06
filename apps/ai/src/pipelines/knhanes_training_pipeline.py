@@ -35,8 +35,6 @@ from src.knhanes_training_configs import (
     BASELINE_RANDOM_STATE,
     BASELINE_REFERENCE_TRAIN_SET,
     BASELINE_RESAMPLING_OPTIONS,
-    BLOOD_INPUT_COLUMNS,
-    BLOOD_MISSING_EXCLUDED_MODELS,
     MODEL_DIAGNOSED_CODES_MAP,
 )
 from src.pipelines.knhanes_data_pipeline import LABELED_DATA_DIR, SPLIT_DATA_DIR
@@ -58,7 +56,6 @@ class BaselineDataset:
     X_validation: pd.DataFrame
     y_validation: pd.Series
     meta_validation: pd.DataFrame
-    excluded_rows: dict[str, int]
 
 
 @dataclass(frozen=True)
@@ -78,12 +75,7 @@ class BaselineRun:
     seconds: float
 
 
-def load_baseline_dataset(
-    split_data_dir: Path,
-    model_type: ModelType,
-    train_set: KnhanesTrainSet,
-    exclude_blood_missing: bool = True,
-) -> BaselineDataset:
+def load_baseline_dataset(split_data_dir: Path, model_type: ModelType, train_set: KnhanesTrainSet) -> BaselineDataset:
     """저장된 분할에서 Train과 Validation만 읽고 입력 구조를 검증합니다."""
     split_dir = split_data_dir / model_type / train_set
     X_train = _read_split_file(split_dir, "X_train")
@@ -97,24 +89,7 @@ def load_baseline_dataset(
     if len(X_train) != len(y_train) or not len(X_validation) == len(y_validation) == len(meta_validation):
         raise KnhanesDataValidationError(f"{model_type}/{train_set}: split rows are not aligned")
 
-    excluded_rows = {"train": 0, "validation": 0}
-    if exclude_blood_missing and model_type in BLOOD_MISSING_EXCLUDED_MODELS:
-        train_mask = _blood_missing_mask(X_train)
-        validation_mask = _blood_missing_mask(X_validation)
-        excluded_rows = {"train": int(train_mask.sum()), "validation": int(validation_mask.sum())}
-        X_train, y_train = X_train[~train_mask], y_train[~train_mask]
-        X_validation = X_validation[~validation_mask]
-        y_validation = y_validation[~validation_mask]
-        meta_validation = meta_validation[~validation_mask]
-
-    return BaselineDataset(
-        X_train=X_train.reset_index(drop=True),
-        y_train=y_train.reset_index(drop=True),
-        X_validation=X_validation.reset_index(drop=True),
-        y_validation=y_validation.reset_index(drop=True),
-        meta_validation=meta_validation.reset_index(drop=True),
-        excluded_rows=excluded_rows,
-    )
+    return BaselineDataset(X_train, y_train, X_validation, y_validation, meta_validation)
 
 
 def load_diagnosed_flags(labeled_data_dir: Path, model_type: ModelType, ids: pd.Series) -> pd.Series:
@@ -215,49 +190,6 @@ def recommend_train_set(comparisons: dict[str, list[PairedDifference]]) -> Knhan
     return KnhanesTrainSet.TRAIN_A_TG if triglyceride_is_better else KnhanesTrainSet.TRAIN_A
 
 
-def measure_blood_missing_effect(
-    split_data_dir: Path,
-    experiment: BaselineExperiment,
-    excluded_run: BaselineRun,
-) -> dict[str, float | int]:
-    """
-    누수 행을 포함해 학습했을 때의 영향을 측정합니다.
-    혈액 값을 지운 입력의 평균 예측이 크게 오르면 모델이 결측을 양성 신호로 학습한 것입니다.
-    """
-    kept_dataset = load_baseline_dataset(
-        split_data_dir, experiment.model_type, experiment.train_set, exclude_blood_missing=False
-    )
-    kept_run = train_baseline(experiment, kept_dataset)
-
-    X_validation = excluded_run.dataset.X_validation
-    blanked = X_validation.copy()
-    blanked[BLOOD_INPUT_COLUMNS] = np.nan
-    weights = excluded_run.dataset.meta_validation[WEIGHT_VAR]
-    y_validation = excluded_run.dataset.y_validation
-
-    def score(run: BaselineRun) -> tuple[BaselineMetrics, float, float]:
-        original = _predict_probability(run.bundle, X_validation)
-        without_blood = _predict_probability(run.bundle, blanked)
-        return (
-            compute_baseline_metrics(y_validation, original, weights),
-            float(original.mean()),
-            float(without_blood.mean()),
-        )
-
-    excluded_metrics, excluded_mean, excluded_blanked_mean = score(excluded_run)
-    kept_metrics, kept_mean, kept_blanked_mean = score(kept_run)
-    return {
-        "excluded_train_rows": excluded_run.dataset.excluded_rows["train"],
-        "excluded_validation_rows": excluded_run.dataset.excluded_rows["validation"],
-        "excluded_model_roc_auc": excluded_metrics.roc_auc,
-        "kept_model_roc_auc": kept_metrics.roc_auc,
-        "excluded_model_mean_prediction": excluded_mean,
-        "excluded_model_mean_prediction_without_blood": excluded_blanked_mean,
-        "kept_model_mean_prediction": kept_mean,
-        "kept_model_mean_prediction_without_blood": kept_blanked_mean,
-    }
-
-
 def run_knhanes_baseline(
     split_data_dir: Path = SPLIT_DATA_DIR,
     labeled_data_dir: Path = LABELED_DATA_DIR,
@@ -296,7 +228,7 @@ def run_knhanes_baseline(
                     logger.info("Finished %s in %.1fs", experiment, run.seconds)
 
         summaries[str(model_type)] = _summarize_model(
-            model_type, runs, results, split_data_dir, report_dir, model_dir, bootstrap_iterations
+            model_type, runs, results, report_dir, model_dir, bootstrap_iterations
         )
 
     report = {
@@ -313,7 +245,6 @@ def _summarize_model(
     model_type: ModelType,
     runs: dict[BaselineExperiment, BaselineRun],
     results: list[dict[str, Any]],
-    split_data_dir: Path,
     report_dir: Path,
     model_dir: Path,
     bootstrap_iterations: int,
@@ -342,7 +273,7 @@ def _summarize_model(
         report_dir / model_type,
     ).run()
 
-    summary: dict[str, Any] = {
+    return {
         "best_algorithm": str(algorithm),
         "best_use_resampling": use_resampling,
         "best_train_set_by_validation": str(best["train_set"]),
@@ -353,11 +284,6 @@ def _summarize_model(
         },
         "saved_model_path": str(saved_model_path),
     }
-    if model_type in BLOOD_MISSING_EXCLUDED_MODELS:
-        summary["blood_missing_effect"] = measure_blood_missing_effect(
-            split_data_dir, recommended_run.experiment, recommended_run
-        )
-    return summary
 
 
 def _save_report(report: dict[str, Any], results: list[dict[str, Any]], report_dir: Path) -> None:
@@ -430,31 +356,11 @@ def render_baseline_report(report: dict[str, Any], results_df: pd.DataFrame) -> 
                 f"| {row.group} | {row.rows} | {row.positive_rate:.3f} | {row.roc_auc:.3f} | {row.pr_auc:.3f} "
                 f"| {row.weighted_roc_auc:.3f} | {row.mean_predicted:.3f} |"
             )
-
-        effect = summary.get("blood_missing_effect")
-        if effect:
-            lines += [
-                "",
-                "### 혈액 결측 누수 행의 영향",
-                "",
-                f"제외한 행: Train {effect['excluded_train_rows']}건, Validation {effect['excluded_validation_rows']}건",
-                "",
-                "| 학습 방식 | ROC-AUC | 평균 예측 | 혈액 값을 지운 입력의 평균 예측 |",
-                "|---|---:|---:|---:|",
-                f"| 제외 | {effect['excluded_model_roc_auc']:.3f} | {effect['excluded_model_mean_prediction']:.3f} "
-                f"| {effect['excluded_model_mean_prediction_without_blood']:.3f} |",
-                f"| 포함 | {effect['kept_model_roc_auc']:.3f} | {effect['kept_model_mean_prediction']:.3f} "
-                f"| {effect['kept_model_mean_prediction_without_blood']:.3f} |",
-            ]
     return "\n".join(lines) + "\n"
 
 
 def _predict_probability(bundle: ModelBundle, X: pd.DataFrame) -> np.ndarray:
     return np.asarray(bundle.model.predict_proba(bundle.transform(X)))[:, 1]
-
-
-def _blood_missing_mask(X: pd.DataFrame) -> pd.Series:
-    return X[BLOOD_INPUT_COLUMNS].isna().all(axis=1)
 
 
 def _read_split_file(split_dir: Path, name: str) -> pd.DataFrame:
