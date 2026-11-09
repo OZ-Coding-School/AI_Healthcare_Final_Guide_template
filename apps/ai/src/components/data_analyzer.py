@@ -204,7 +204,11 @@ class DataAnalyzer:
         if target not in self.df.columns:
             raise ValueError(f"Target variable '{target}' not found in the DataFrame")
 
-        corr_matrix = self._create_correlation_df(self.df).corr(numeric_only=True)
+        correlation_df = self._create_correlation_df(self.df)
+        if target not in correlation_df.columns:
+            raise ValueError(f"Target variable '{target}' must have a numeric dtype for Pearson correlation")
+
+        corr_matrix = correlation_df.corr()
         return corr_matrix[target].drop(target).abs().sort_values(ascending=False).head(top_k).index.tolist()
 
     def save_top_k_correlation_matrix_plot(self, target: str, top_k: int = 20) -> None:
@@ -255,18 +259,10 @@ class DataAnalyzer:
 
     def _create_correlation_df(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        상관관계 행렬 계산을 위한 DataFrame을 생성합니다.
-        범주형 변수는 pandas category code로 임시 변환하여 수치형 상관관계 행렬 계산에 포함합니다.
-
-        ! 주의: 범주형 변수의 category code 기반 상관계수는 탐색적 분석(EDA)을 위한 참고용으로만 사용해야 합니다.
+        Pearson 상관관계 계산에 사용할 수치형 변수만 반환합니다.
+        명목형 범주를 임의의 숫자로 바꾸면 숫자 코드 순서가 상관계수에 영향을 주므로 포함하지 않습니다.
         """
-        df_corr = df.copy()
-        categorical_cols = df_corr.select_dtypes(include=["object", "string", "category"]).columns
-
-        for col in categorical_cols:
-            df_corr[col] = df_corr[col].astype("category").cat.codes
-
-        return df_corr
+        return df.select_dtypes(include=["number"]).copy()
 
     def _save_plot(self, filename: str) -> None:
         plt.tight_layout()

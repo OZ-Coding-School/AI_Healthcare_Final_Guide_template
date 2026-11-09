@@ -70,14 +70,7 @@ def test_full_ml_pipeline_e2e(raw_knhanes_dataset: Path, tmp_path: Path):
     raw_df = loader.load(raw_knhanes_dataset)
     assert len(raw_df) == 120
 
-    # 2. DataAnalyzer: EDA 실행 및 통계/플롯 산출
-    eda_dir = pipeline_dir / "eda"
-    analyzer = DataAnalyzer(df=raw_df, output_dir_path=eda_dir)
-    analyzer.run_full_eda(target="DE1_pr")
-    assert (eda_dir / "csv" / "dataset_summary.csv").exists()
-    assert (eda_dir / "plots" / "all_variables_correlation_matrix.png").exists()
-
-    # 3. KnhanesPreprocessor: 라벨이 생성된 데이터의 도메인 전처리
+    # 2. KnhanesPreprocessor: 라벨이 생성된 데이터의 도메인 전처리
     labeled_df = raw_df.assign(
         ID=[f"A{index}" for index in range(len(raw_df))],
         ID_fam=[f"F{index}" for index in range(len(raw_df))],
@@ -99,7 +92,7 @@ def test_full_ml_pipeline_e2e(raw_knhanes_dataset: Path, tmp_path: Path):
     assert DISEASE_LABEL_VAR in clean_df.columns
     assert "당뇨병 가족력 보유 여부" in clean_df.columns
 
-    # 4. DataSplitter: Stratified 분할 (Train/Val/Test)
+    # 3. DataSplitter: Stratified 분할 (Train/Val/Test)
     split_dir = pipeline_dir / "split"
     splitter = DataSplitter(
         output_dir=split_dir,
@@ -112,6 +105,17 @@ def test_full_ml_pipeline_e2e(raw_knhanes_dataset: Path, tmp_path: Path):
     splitter.save_to_parquet(split_data)
     assert (split_dir / "X_train.parquet").exists()
     assert (split_dir / "y_test.parquet").exists()
+
+    # 4. DataAnalyzer: Train 데이터만 사용해 EDA 및 Target 관계 분석
+    eda_dir = pipeline_dir / "eda"
+    train_df = pd.concat(
+        [split_data.X_train, split_data.y_train.rename("당뇨병 유병 여부")],
+        axis=1,
+    )
+    analyzer = DataAnalyzer(df=train_df, output_dir_path=eda_dir)
+    analyzer.run_full_eda(target="당뇨병 유병 여부")
+    assert (eda_dir / "csv" / "dataset_summary.csv").exists()
+    assert (eda_dir / "plots" / "all_variables_correlation_matrix.png").exists()
 
     # 5. BinaryClassificationModelTrainer: 모델 학습 및 번들 패키징
     model_dir = pipeline_dir / "models"
