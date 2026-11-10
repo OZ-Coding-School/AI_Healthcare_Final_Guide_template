@@ -10,6 +10,7 @@ from src.components.knhanes_multi_year_loader import KnhanesDataValidationError
 from src.enums import ModelType
 from src.knhanes_label_configs import DISEASE_LABEL_VAR
 from src.knhanes_preprocessing_configs import (
+    BLOOD_INPUT_VARS,
     KNHANES_VARIABLES_CONFIG_MAP,
     MODEL_FORBIDDEN_INPUT_VARS_MAP,
     TRAINING_META_VARS,
@@ -235,6 +236,46 @@ def test_preprocess_labeled_rejects_empty_data(labeled_knhanes_sample_df, tmp_pa
         make_preprocessor(D, tmp_path).preprocess_labeled(labeled_knhanes_sample_df.iloc[0:0])
 
 
+def test_diabetes_training_excludes_rows_without_any_blood_value(labeled_knhanes_sample_df, tmp_path: Path):
+    labeled_knhanes_sample_df.loc[1, BLOOD_INPUT_VARS] = np.nan
+
+    df = make_preprocessor(D, tmp_path).preprocess_labeled(labeled_knhanes_sample_df)
+
+    assert df["ID"].tolist() == ["A1", "A3"]
+    assert df["나이"].tolist() == [45.0, 60.0]
+
+
+def test_diabetes_training_keeps_rows_with_partial_blood_values(labeled_knhanes_sample_df, tmp_path: Path):
+    labeled_knhanes_sample_df.loc[1, BLOOD_INPUT_VARS[1:]] = np.nan
+
+    df = make_preprocessor(D, tmp_path).preprocess_labeled(labeled_knhanes_sample_df)
+
+    assert df["ID"].tolist() == ["A1", "A2", "A3"]
+
+
+def test_hypertension_training_keeps_rows_without_blood_values(labeled_knhanes_sample_df, tmp_path: Path):
+    labeled_knhanes_sample_df.loc[1, BLOOD_INPUT_VARS] = np.nan
+
+    df = make_preprocessor(H, tmp_path).preprocess_labeled(labeled_knhanes_sample_df)
+
+    assert df["ID"].tolist() == ["A1", "A2", "A3"]
+
+
+def test_inference_keeps_rows_without_blood_values(labeled_knhanes_sample_df, tmp_path: Path):
+    labeled_knhanes_sample_df[BLOOD_INPUT_VARS] = np.nan
+
+    processed_df = make_preprocessor(D, tmp_path).preprocess(labeled_knhanes_sample_df)
+
+    assert len(processed_df) == 3
+
+
+def test_diabetes_training_rejects_data_without_blood_values(labeled_knhanes_sample_df, tmp_path: Path):
+    labeled_knhanes_sample_df[BLOOD_INPUT_VARS] = np.nan
+
+    with pytest.raises(KnhanesDataValidationError, match="no rows have blood test values"):
+        make_preprocessor(D, tmp_path).preprocess_labeled(labeled_knhanes_sample_df)
+
+
 def test_run_knhanes_preprocessing_saves_outputs(labeled_knhanes_sample_df, tmp_path: Path):
     labeled_dir = tmp_path / "labeled"
     labeled_dir.mkdir()
@@ -263,7 +304,7 @@ def test_run_knhanes_preprocessing_requires_labeled_file(tmp_path: Path):
 def test_real_data_keeps_labeled_rows_and_excludes_forbidden_inputs(tmp_path: Path):
     results = run_knhanes_preprocessing(preprocessed_data_dir=tmp_path)
 
-    expected_counts = {D: (27_404, 4_710), H: (28_397, 10_016)}
+    expected_counts = {D: (27_249, 4_555), H: (28_397, 10_016)}
     for model_type, preprocessed_df in results.items():
         rows, positives = expected_counts[model_type]
         feature_columns = preprocessed_df.columns.difference([*TRAINING_META_VARS, DISEASE_LABEL_VAR])
