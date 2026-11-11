@@ -5,6 +5,7 @@
 - 같은 Test로 다시 평가하지 않도록, 결과 보고서가 이미 있으면 실행을 거부합니다.
 """
 
+import argparse
 import hashlib
 import json
 from dataclasses import asdict
@@ -25,7 +26,9 @@ from src.components.knhanes_risk_threshold import (
     RISK_LEVEL_LOW,
     RISK_LEVEL_MODERATE,
     RiskThresholds,
+    confusion_from_threshold_performance,
     evaluate_thresholds,
+    threshold_confusions,
 )
 from src.components.model_evaluator import ModelEvaluator
 from src.components.model_trainer import ModelBundle
@@ -47,6 +50,7 @@ logger = configure_logger("KNHANES Final Evaluation")
 
 FINAL_EVALUATION_REPORT_DIR = settings.MODEL_REPORT_DIR / "knhanes_final_evaluation"
 FINAL_EVALUATION_REPORT_NAME = "final_evaluation_report.json"
+FINAL_EVALUATION_SUPPLEMENT_NAME = "threshold_confusion_report.json"
 LEVELS = [RISK_LEVEL_LOW, RISK_LEVEL_MODERATE, RISK_LEVEL_HIGH]
 
 
@@ -197,6 +201,9 @@ def _evaluate_model(
             "threshold_performance": [
                 asdict(performance) for performance in evaluate_thresholds(y_test[mask], prob[mask], thresholds)
             ],
+            "threshold_confusion": [
+                asdict(confusion) for confusion in threshold_confusions(y_test[mask], prob[mask], thresholds)
+            ],
             "risk_level_shares": {level: float(np.mean(levels == level)) for level in LEVELS},
             "risk_level_positive_rates": {
                 level: float(y_test[mask][levels == level].mean()) if (levels == level).any() else None
@@ -239,6 +246,44 @@ def _shap_output_space(bundle: ModelBundle, reported: str) -> str:
     if bundle.model.__class__.__name__ in {"LGBMClassifier", "XGBClassifier", "GradientBoostingClassifier"}:
         return "log_odds"
     return reported
+
+
+def threshold_confusion_rows(metrics: dict[str, Any]) -> list[dict[str, Any]]:
+    """
+    경계별 혼동 행렬입니다. 혼동 행렬 없이 저장된 이전 보고서는 재현율·특이도·행 수로 복원합니다.
+    """
+    if "threshold_confusion" in metrics:
+        return list(metrics["threshold_confusion"])
+    return [
+        asdict(confusion_from_threshold_performance(metrics["rows"], metrics["positive_rate"], performance))
+        for performance in metrics["threshold_performance"]
+    ]
+
+
+def run_final_report_supplement(report_dir: Path = FINAL_EVALUATION_REPORT_DIR) -> dict[str, Any]:
+    """
+    저장된 최종 평가 결과에 경계별 혼동 행렬·F1을 보강합니다. Test를 다시 읽거나 예측하지 않습니다.
+    원 평가 기록(final_evaluation_report.json)은 그대로 두고 보강 파일과 Markdown 보고서만 새로 씁니다.
+    """
+    report_path = report_dir / FINAL_EVALUATION_REPORT_NAME
+    if not report_path.exists():
+        raise FileNotFoundError(f"Final evaluation report not found: {report_path}")
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+
+    supplement = {
+        "source": FINAL_EVALUATION_REPORT_NAME,
+        "test_split_reused": False,
+        "models": {
+            model_type: {group: threshold_confusion_rows(metrics) for group, metrics in summary["metrics"].items()}
+            for model_type, summary in report["models"].items()
+        },
+    }
+    (report_dir / FINAL_EVALUATION_SUPPLEMENT_NAME).write_text(
+        json.dumps(supplement, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    (report_dir / "final_evaluation_report.md").write_text(render_final_report(report), encoding="utf-8")
+    logger.info("Saved threshold confusion supplement to %s", report_dir)
+    return supplement
 
 
 def render_final_report(report: dict[str, Any]) -> str:
@@ -308,6 +353,22 @@ def render_final_report(report: dict[str, Any]) -> str:
 
         lines += [
             "",
+            "### 경계별 혼동 행렬 (Test, 경계 이상을 양성으로 판정)",
+            "",
+            "| 집단 | 경계 | TP | FP | TN | FN | 정밀도 | 재현율 | 특이도 | F1 |",
+            "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+        for group, metrics in summary["metrics"].items():
+            for confusion in threshold_confusion_rows(metrics):
+                lines.append(
+                    f"| {group} | {confusion['level']} 이상 | {confusion['true_positive']} "
+                    f"| {confusion['false_positive']} | {confusion['true_negative']} | {confusion['false_negative']} "
+                    f"| {confusion['precision']:.3f} | {confusion['recall']:.3f} | {confusion['specificity']:.3f} "
+                    f"| {confusion['f1']:.3f} |"
+                )
+
+        lines += [
+            "",
             "### 등급별 분포와 실제 양성률 (Test)",
             "",
             "| 집단 | 등급 | 비율 | 실제 양성률 |",
@@ -336,4 +397,13 @@ def render_final_report(report: dict[str, Any]) -> str:
 
 
 if __name__ == "__main__":
-    run_knhanes_final_evaluation()
+    parser = argparse.ArgumentParser(description="KNHANES 최종 평가 (2024년 Test, 1회만 실행)")
+    parser.add_argument(
+        "--supplement-only",
+        action="store_true",
+        help="Test를 다시 평가하지 않고 저장된 결과에 경계별 혼동 행렬·F1만 보강합니다.",
+    )
+    if parser.parse_args().supplement_only:
+        run_final_report_supplement()
+    else:
+        run_knhanes_final_evaluation()
