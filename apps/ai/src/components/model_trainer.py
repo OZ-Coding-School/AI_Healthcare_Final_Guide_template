@@ -32,6 +32,21 @@ class ModelBundle:
     feature_names: list[str]
     threshold: float = 0.5
     feature_metadata: list[Any] | None = None
+    # 원 모델과 분리해 저장해야 SHAP TreeExplainer가 원 모델에 바로 접근할 수 있습니다.
+    calibrator: Any | None = None
+    risk_thresholds: dict[str, float] | None = None
+
+    def calibrate(self, raw_prob: np.ndarray) -> np.ndarray:
+        """모델의 양성 확률에 보정기를 적용합니다. 보정기가 없으면 그대로 반환합니다."""
+        raw_prob = np.asarray(raw_prob, dtype=float)
+        if self.calibrator is None:
+            return raw_prob
+        return np.asarray(self.calibrator.transform(raw_prob), dtype=float)
+
+    def predict_proba(self, X: pd.DataFrame | np.ndarray) -> np.ndarray:
+        """원본 입력을 전처리하고 보정까지 적용한 양성 확률(1차원)을 반환합니다."""
+        raw_prob = np.asarray(self.model.predict_proba(self.transform(X)))[:, 1]
+        return self.calibrate(raw_prob)
 
     def transform(self, X: pd.DataFrame | np.ndarray) -> np.ndarray:
         """입력 데이터를 모델 학습에 사용된 전처리 파이프라인을 거쳐 2D NumPy 배열로 변환합니다."""
@@ -53,6 +68,8 @@ class ModelBundle:
                 "feature_names": self.feature_names,
                 "threshold": self.threshold,
                 "feature_metadata": self.feature_metadata,
+                "calibrator": self.calibrator,
+                "risk_thresholds": self.risk_thresholds,
             },
             save_path,
         )
@@ -73,6 +90,8 @@ class ModelBundle:
                 feature_names=bundle["feature_names"],
                 threshold=bundle.get("threshold", 0.5),
                 feature_metadata=bundle.get("feature_metadata", None),
+                calibrator=bundle.get("calibrator", None),
+                risk_thresholds=bundle.get("risk_thresholds", None),
             )
         raise TypeError(f"Loaded object is not a ModelBundle or dict: {type(bundle)}")
 

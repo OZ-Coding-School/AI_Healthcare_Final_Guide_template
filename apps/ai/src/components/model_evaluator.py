@@ -120,6 +120,8 @@ class ModelEvaluator:
         y_prob = None
         if hasattr(self.model, "predict_proba"):
             y_prob = self.model.predict_proba(x_test_proc)[:, 1]
+            if self.bundle is not None:
+                y_prob = self.bundle.calibrate(y_prob)
         elif hasattr(self.model, "decision_function"):
             y_prob = self.model.decision_function(x_test_proc)
 
