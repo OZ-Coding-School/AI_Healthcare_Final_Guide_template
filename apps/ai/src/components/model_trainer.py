@@ -35,6 +35,8 @@ class ModelBundle:
     # 원 모델과 분리해 저장해야 SHAP TreeExplainer가 원 모델에 바로 접근할 수 있습니다.
     calibrator: Any | None = None
     risk_thresholds: dict[str, float] | None = None
+    # 서빙 번들의 출처·입력 스키마·버전 정보입니다. 학습 중 번들에는 없고 서빙 번들 내보내기에서 채웁니다.
+    metadata: dict[str, Any] | None = None
 
     def calibrate(self, raw_prob: np.ndarray) -> np.ndarray:
         """모델의 양성 확률에 보정기를 적용합니다. 보정기가 없으면 그대로 반환합니다."""
@@ -70,6 +72,7 @@ class ModelBundle:
                 "feature_metadata": self.feature_metadata,
                 "calibrator": self.calibrator,
                 "risk_thresholds": self.risk_thresholds,
+                "metadata": self.metadata,
             },
             save_path,
         )
@@ -92,6 +95,7 @@ class ModelBundle:
                 feature_metadata=bundle.get("feature_metadata", None),
                 calibrator=bundle.get("calibrator", None),
                 risk_thresholds=bundle.get("risk_thresholds", None),
+                metadata=bundle.get("metadata", None),
             )
         raise TypeError(f"Loaded object is not a ModelBundle or dict: {type(bundle)}")
 
