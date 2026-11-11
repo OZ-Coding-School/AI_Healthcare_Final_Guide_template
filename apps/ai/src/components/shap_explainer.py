@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -120,6 +121,7 @@ class ShapExplainer:
         background_data: np.ndarray | pd.DataFrame | None = None,
         background_size: int = 100,
         random_state: int = 42,
+        calibrate_fn: Callable[[np.ndarray], np.ndarray] | None = None,
     ) -> None:
         """
         Args:
@@ -131,6 +133,7 @@ class ShapExplainer:
             background_data: LinearExplainer 또는 Kernel/Permutation Explainer에서 참조할 배경 데이터셋
             background_size: 배경 데이터 최대 샘플링 크기 (기본값: 100)
             random_state: 재현성을 위한 난수 시드 (기본값: 42)
+            calibrate_fn: 원 모델의 양성 확률을 보정하는 함수. 로컬 설명의 prediction_value를 서비스 위험도와 맞추는 데 사용
         """
         self.model = model
         self.feature_names = feature_names
@@ -139,6 +142,7 @@ class ShapExplainer:
         self.feature_metadata = feature_metadata or []
         self.background_size = background_size
         self.random_state = random_state
+        self.calibrate_fn = calibrate_fn
 
         # 배경 데이터가 전달된 경우 동일한 전처리 및 샘플링 과정을 거쳐 저장
         if background_data is not None:
@@ -182,6 +186,7 @@ class ShapExplainer:
             background_data=background_data,
             background_size=background_size,
             random_state=random_state,
+            calibrate_fn=bundle.calibrate,
         )
 
     def _prepare_data(
@@ -293,7 +298,7 @@ class ShapExplainer:
         try:
             if model_name in tree_models:
                 self._explainer = shap.TreeExplainer(self.model)
-                self._output_space = "probability" if hasattr(self.model, "predict_proba") else "raw"
+                self._output_space = self._tree_output_space(model_name)
             elif model_name in linear_models:
                 self._explainer = shap.LinearExplainer(self.model, bg)
                 self._output_space = "log_odds" if model_name == "LogisticRegression" else "raw"
@@ -319,6 +324,17 @@ class ShapExplainer:
                 self._output_space = "raw"
 
         return self._explainer
+
+    def _tree_output_space(self, model_name: str) -> Literal["probability", "log_odds", "raw"]:
+        """
+        TreeExplainer 기본 출력(model_output="raw")의 단위를 반환합니다.
+        부스팅 분류기는 log-odds, 랜덤 포레스트 계열 분류기는 확률을 출력합니다.
+        """
+        if model_name in {"LGBMClassifier", "XGBClassifier", "GradientBoostingClassifier"}:
+            return "log_odds"
+        if model_name in {"RandomForestClassifier", "ExtraTreesClassifier"}:
+            return "probability"
+        return "raw"
 
     @staticmethod
     def _extract_shap_matrix(shap_values_obj: Any, expected_shape: tuple[int, int]) -> np.ndarray:
@@ -468,6 +484,7 @@ class ShapExplainer:
         self,
         x_single: pd.DataFrame | pd.Series | np.ndarray | dict[str, Any],
         top_k: int | None = None,
+        group_by_original: bool = False,
     ) -> LocalExplanation:
         """
         단일 예측 대상(환자/사용자 1명)에 대해 각 피처가 예측값에 미친 기여도를 계산하여 구조화된 `LocalExplanation` 객체를 반환합니다.
@@ -475,11 +492,15 @@ class ShapExplainer:
         [실행 흐름]
         1. 원본 입력 피처 값(`raw_values`)을 사전 캡처
         2. 단일 샘플 입력을 전처리 후 2차원 (1, D) 형태로 변환
-        3. 모델의 실제 예측값(Positive Class 확률 또는 모델 출력값) 산출
+        3. 모델의 실제 예측값(보정 함수가 있으면 보정된 Positive Class 확률) 산출
         4. SHAP 값 계산 및 추출, base_value 도출
         5. FeatureMetadata 및 원본/인코딩 값을 결합하여 `FeatureContribution` 객체 리스트 구성
-        6. 기여도의 절대값(|SHAP|)을 기준으로 내림차순 정렬 및 top_k 필터링
-        7. `LocalExplanation` 반환
+        6. group_by_original이면 원-핫 피처의 SHAP을 원 변수 단위로 합산
+        7. 기여도의 절대값(|SHAP|)을 기준으로 내림차순 정렬 및 top_k 필터링
+        8. `LocalExplanation` 반환
+
+        base_value와 shap_value는 output_space 단위입니다. prediction_value는 보정 후 확률이므로
+        output_space가 log_odds이고 보정기가 있으면 base_value + SHAP 합과 직접 비교할 수 없습니다.
         """
         # 1. 원본 입력 피처 값 캡처
         raw_feature_map: dict[str, Any] = {}
@@ -495,7 +516,10 @@ class ShapExplainer:
 
         # 3. 모델 예측값 계산
         if hasattr(self.model, "predict_proba"):
-            prediction_value = float(self.model.predict_proba(x_proc)[0, 1])
+            prob = np.asarray(self.model.predict_proba(x_proc))[:, 1]
+            if self.calibrate_fn is not None:
+                prob = np.asarray(self.calibrate_fn(prob), dtype=float)
+            prediction_value = float(prob[0])
         elif hasattr(self.model, "predict"):
             pred = self.model.predict(x_proc)[0]
             prediction_value = float(pred)
@@ -542,7 +566,11 @@ class ShapExplainer:
                 )
             )
 
-        # 6. 절대값 기준 내림차순 정렬
+        # 6. 원-핫 피처를 원 변수 단위로 합산
+        if group_by_original:
+            contributions = self._group_contributions_by_original(contributions, meta_by_model_feat, raw_feature_map)
+
+        # 7. 절대값 기준 내림차순 정렬
         contributions.sort(key=lambda item: abs(item.shap_value), reverse=True)
 
         if top_k is not None:
@@ -554,6 +582,43 @@ class ShapExplainer:
             output_space=self._output_space,
             contributions=contributions,
         )
+
+    @staticmethod
+    def _group_contributions_by_original(
+        contributions: list[FeatureContribution],
+        meta_by_model_feat: dict[str, FeatureMetadata],
+        raw_feature_map: dict[str, Any],
+    ) -> list[FeatureContribution]:
+        """
+        같은 원 변수에서 나온 원-핫 피처의 SHAP을 합산합니다.
+        사용자 설명에서 '흡연 상태_CURRENT', '흡연 상태_NEVER'처럼 한 변수가 여러 항목으로 나뉘는 것을 막습니다.
+        원 변수의 표시명은 원 변수와 이름이 같은 피처의 표시명, 없으면 첫 원-핫 피처의 표시명을 씁니다.
+        """
+        grouped: dict[str, dict[str, Any]] = {}
+        for contribution in contributions:
+            meta = meta_by_model_feat.get(contribution.feature)
+            original = meta.original_feature_name if meta is not None else contribution.feature
+            group = grouped.setdefault(
+                original,
+                {"shap_value": 0.0, "display_name": contribution.display_name, "value": contribution.value},
+            )
+            group["shap_value"] += contribution.shap_value
+            if contribution.feature == original:
+                group["display_name"] = contribution.display_name
+
+        result = []
+        for original, group in grouped.items():
+            shap_value = float(group["shap_value"])
+            result.append(
+                FeatureContribution(
+                    feature=original,
+                    display_name=str(group["display_name"]),
+                    value=raw_feature_map.get(original, group["value"]),
+                    shap_value=shap_value,
+                    direction="increase" if shap_value >= 0 else "decrease",
+                )
+            )
+        return result
 
     def _save_plots(
         self,
