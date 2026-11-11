@@ -31,13 +31,15 @@ class KnhanesPreprocessor:
     def __init__(
         self,
         use_case: DataUseCase,
-        output_dir: Path,
+        output_dir: Path | None = None,
     ) -> None:
         self.use_case = use_case
         self.vars_config_map = KNHANES_VARIABLES_CONFIG_MAP
         self.usable_vars = MODEL_INPUT_VARS_MAP[self.use_case]
-        self.output_dir: Path = output_dir
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        # 추론에서는 저장하지 않으므로 출력 경로 없이 생성합니다. 디렉터리는 저장 경로가 있을 때만 만듭니다.
+        self.output_dir: Path | None = output_dir
+        if self.output_dir is not None:
+            self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def preprocess(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -85,6 +87,8 @@ class KnhanesPreprocessor:
         return pd.concat([meta, features], axis=1)
 
     def save(self, processed_df: pd.DataFrame) -> None:
+        if self.output_dir is None:
+            raise ValueError(f"{self.use_case}: output_dir is required to save preprocessed data")
         processed_df.to_parquet(self.output_dir / f"{self.use_case}.parquet", index=False)
 
     def _validate_input_vars(self, df: pd.DataFrame) -> None:
