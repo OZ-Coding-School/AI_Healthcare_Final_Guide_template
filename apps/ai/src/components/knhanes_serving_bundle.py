@@ -1,18 +1,29 @@
 """
-서빙 번들의 메타데이터 생성, 무결성 확인, 로드를 담당합니다.
+서빙 아티팩트의 저장, 무결성 확인, 로드를 담당합니다.
 
-서빙 번들은 10번에서 Test로 평가한 번들과 같은 모델 객체를 그대로 담고, 출처·입력 스키마·버전만 추가합니다.
-pickle은 로드 시 코드를 실행할 수 있으므로, 매니페스트에 기록한 SHA-256과 일치하는 파일만 로드합니다.
+모델마다 폴더 하나에 학습 산출물을 역할별 파일로 나눠 저장합니다.
+
+    {model_type}_model/
+    ├── model.pkl           학습된 분류기
+    ├── preprocessor.pkl    Train에만 fit한 전처리기 (결측 대치, 원-핫 등)
+    ├── calibrator.pkl      확률 보정기
+    ├── thresholds.json     위험 등급 경계와 산출 기준
+    └── metadata.json       출처, 입력 스키마, 학습 범위, 버전, 파일 해시
+
+코드값 정제·파생변수 같은 규칙 기반 전처리(KnhanesPreprocessor)는 학습한 상태가 없으므로 파일이 아니라 코드로 적용합니다.
+pickle은 로드 시 코드를 실행할 수 있으므로, 매니페스트 → metadata.json → 각 파일 순서로 SHA-256을 확인한 뒤에만 로드합니다.
 """
 
 import hashlib
 import json
 import logging
+import subprocess
 from datetime import UTC, datetime
 from importlib import metadata as importlib_metadata
 from pathlib import Path
 from typing import Any
 
+import joblib
 import pandas as pd
 
 from src.components.knhanes_inference_errors import ModelArtifactError
@@ -21,10 +32,16 @@ from src.enums import ModelType
 from src.knhanes_inference_configs import (
     FEATURE_DISPLAY_NAME_MAP,
     SERVING_BUNDLE_SCHEMA_VERSION,
+    SERVING_CALIBRATOR_FILE,
+    SERVING_HASHED_FILES,
     SERVING_MANIFEST_NAME,
+    SERVING_METADATA_FILE,
     SERVING_METADATA_REQUIRED_KEYS,
+    SERVING_MODEL_FILE,
+    SERVING_PREPROCESSOR_FILE,
+    SERVING_THRESHOLDS_FILE,
     SERVING_TRACKED_LIBRARIES,
-    serving_bundle_filename,
+    serving_model_dirname,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,6 +65,26 @@ def library_versions() -> dict[str, str | None]:
         except importlib_metadata.PackageNotFoundError:
             versions[name] = None
     return versions
+
+
+def code_version() -> dict[str, Any]:
+    """아티팩트를 만든 코드의 커밋입니다. Git이 없는 환경(컨테이너 등)에서는 None입니다."""
+    ai_dir = Path(__file__).resolve().parents[2]
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=ai_dir, capture_output=True, text=True, check=True, timeout=10
+        ).stdout.strip()
+        status = subprocess.run(
+            ["git", "status", "--porcelain", "--", "src"],
+            cwd=ai_dir,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return {"git_commit": None, "src_has_uncommitted_changes": None}
+    return {"git_commit": commit, "src_has_uncommitted_changes": bool(status.strip())}
 
 
 def build_input_schema(bundle: ModelBundle, X_train: pd.DataFrame) -> dict[str, Any]:
@@ -107,18 +144,26 @@ def build_serving_metadata(
     model_type: ModelType,
     train_set: str,
     algorithm: str,
+    hyperparameters: dict[str, Any],
+    calibration_method: str,
     source_model_sha256: str,
+    training_data_sha256: dict[str, str],
     X_train: pd.DataFrame,
     test_metrics: dict[str, Any],
 ) -> dict[str, Any]:
+    """재학습과 버전 추적에 필요한 정보입니다. 파일 해시(files)는 저장할 때 채웁니다."""
     input_schema = build_input_schema(bundle, X_train)
     return {
         "schema_version": SERVING_BUNDLE_SCHEMA_VERSION,
         "model_type": str(model_type),
         "train_set": train_set,
         "algorithm": algorithm,
+        "hyperparameters": hyperparameters,
+        "calibration_method": calibration_method,
         "source_model_sha256": source_model_sha256,
+        "training_data_sha256": training_data_sha256,
         "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "code_version": code_version(),
         "library_versions": library_versions(),
         "input_schema": input_schema,
         "numeric_ranges": build_numeric_ranges(X_train, input_schema["numeric"]),
@@ -128,7 +173,47 @@ def build_serving_metadata(
 
 def model_version(bundle: ModelBundle) -> str:
     meta = bundle.metadata or {}
-    return f"{meta.get('model_type')}:{meta.get('train_set')}:{meta.get('algorithm')}:{str(meta.get('source_model_sha256'))[:12]}"
+    source = str(meta.get("source_model_sha256"))[:12]
+    return f"{meta.get('model_type')}:{meta.get('train_set')}:{meta.get('algorithm')}:{source}"
+
+
+def save_serving_artifacts(
+    bundle: ModelBundle, model_dir: Path, threshold_criteria: dict[str, Any] | None = None
+) -> Path:
+    """
+    번들을 역할별 파일로 나눠 저장하고, 각 파일의 해시를 metadata.json에 기록합니다.
+    metadata.json 경로를 반환하며, 이 파일의 해시는 매니페스트에 기록합니다.
+    """
+    if not bundle.metadata:
+        raise ModelArtifactError("Bundle has no serving metadata")
+    if bundle.calibrator is None or not bundle.risk_thresholds:
+        raise ModelArtifactError("Bundle must have a calibrator and risk thresholds")
+
+    model_dir.mkdir(parents=True, exist_ok=True)
+    joblib.dump(bundle.model, model_dir / SERVING_MODEL_FILE)
+    joblib.dump(
+        {"preprocessor": bundle.preprocessor, "post_preprocessor": bundle.post_preprocessor},
+        model_dir / SERVING_PREPROCESSOR_FILE,
+    )
+    joblib.dump(bundle.calibrator, model_dir / SERVING_CALIBRATOR_FILE)
+    thresholds = {
+        "moderate": float(bundle.risk_thresholds["moderate"]),
+        "high": float(bundle.risk_thresholds["high"]),
+        "decision_threshold": float(bundle.threshold),
+        "rule": "probability >= high -> HIGH, >= moderate -> MODERATE, otherwise LOW",
+        "criteria": threshold_criteria or {},
+    }
+    _write_json(model_dir / SERVING_THRESHOLDS_FILE, thresholds)
+
+    metadata = {
+        **bundle.metadata,
+        "feature_names": list(bundle.feature_names),
+        "feature_metadata": list(bundle.feature_metadata or []),
+        "files": {name: file_sha256(model_dir / name) for name in SERVING_HASHED_FILES},
+    }
+    metadata_path = model_dir / SERVING_METADATA_FILE
+    _write_json(metadata_path, metadata)
+    return metadata_path
 
 
 def validate_serving_bundle(bundle: ModelBundle, model_type: ModelType) -> None:
@@ -160,35 +245,79 @@ def validate_serving_bundle(bundle: ModelBundle, model_type: ModelType) -> None:
         logger.warning("%s: library versions differ from the bundle (saved, current): %s", model_type, changed)
 
 
-def read_manifest(model_dir: Path) -> dict[str, Any]:
-    path = model_dir / SERVING_MANIFEST_NAME
+def read_manifest(serving_dir: Path) -> dict[str, Any]:
+    path = serving_dir / SERVING_MANIFEST_NAME
     if not path.exists():
         raise ModelArtifactError(f"Serving manifest not found: {path}")
     return dict(json.loads(path.read_text(encoding="utf-8")))
 
 
-def write_manifest(model_dir: Path, manifest: dict[str, Any]) -> Path:
-    path = model_dir / SERVING_MANIFEST_NAME
-    path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+def write_manifest(serving_dir: Path, manifest: dict[str, Any]) -> Path:
+    path = serving_dir / SERVING_MANIFEST_NAME
+    _write_json(path, manifest)
     return path
 
 
-def load_serving_bundle(model_dir: Path, model_type: ModelType) -> ModelBundle:
-    """매니페스트의 해시와 일치하는 서빙 번들만 로드하고 메타데이터를 검증합니다."""
-    manifest = read_manifest(model_dir)
+def manifest_entry(serving_dir: Path, model_type: ModelType, metadata_path: Path) -> dict[str, Any]:
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    return {
+        "directory": metadata_path.parent.relative_to(serving_dir).as_posix(),
+        "metadata_sha256": file_sha256(metadata_path),
+        "source_model_sha256": metadata["source_model_sha256"],
+        "train_set": metadata["train_set"],
+        "algorithm": metadata["algorithm"],
+        "created_at": metadata["created_at"],
+    }
+
+
+def load_serving_bundle(serving_dir: Path, model_type: ModelType) -> ModelBundle:
+    """
+    매니페스트에 기록된 metadata.json 해시, metadata.json에 기록된 파일별 해시를 차례로 확인한 뒤
+    파일들을 읽어 ModelBundle로 조립합니다.
+    """
+    manifest = read_manifest(serving_dir)
     entry = manifest.get(str(model_type))
     if entry is None:
         raise ModelArtifactError(f"{model_type}: not listed in the serving manifest")
 
-    path = model_dir / serving_bundle_filename(model_type)
-    if not path.exists():
-        raise ModelArtifactError(f"{model_type}: serving bundle not found: {path}")
-    if file_sha256(path) != entry.get("sha256"):
-        raise ModelArtifactError(f"{model_type}: serving bundle hash does not match the manifest")
+    model_dir = serving_dir / str(entry.get("directory", serving_model_dirname(model_type)))
+    metadata_path = model_dir / SERVING_METADATA_FILE
+    if not metadata_path.exists():
+        raise ModelArtifactError(f"{model_type}: metadata not found: {metadata_path}")
+    if file_sha256(metadata_path) != entry.get("metadata_sha256"):
+        raise ModelArtifactError(f"{model_type}: metadata hash does not match the manifest")
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+
+    expected_hashes = metadata.get("files", {})
+    for name in SERVING_HASHED_FILES:
+        path = model_dir / name
+        if not path.exists():
+            raise ModelArtifactError(f"{model_type}: artifact not found: {name}")
+        if file_sha256(path) != expected_hashes.get(name):
+            raise ModelArtifactError(f"{model_type}: {name} hash does not match the metadata")
 
     try:
-        bundle = ModelBundle.load(path)
+        model = joblib.load(model_dir / SERVING_MODEL_FILE)
+        preprocessors = joblib.load(model_dir / SERVING_PREPROCESSOR_FILE)
+        calibrator = joblib.load(model_dir / SERVING_CALIBRATOR_FILE)
     except Exception as error:
-        raise ModelArtifactError(f"{model_type}: failed to load serving bundle: {type(error).__name__}") from error
+        raise ModelArtifactError(f"{model_type}: failed to load artifacts: {type(error).__name__}") from error
+    thresholds = json.loads((model_dir / SERVING_THRESHOLDS_FILE).read_text(encoding="utf-8"))
+
+    bundle = ModelBundle(
+        model=model,
+        preprocessor=preprocessors["preprocessor"],
+        post_preprocessor=preprocessors.get("post_preprocessor"),
+        feature_names=list(metadata.get("feature_names", [])),
+        threshold=float(thresholds["decision_threshold"]),
+        feature_metadata=list(metadata.get("feature_metadata", [])),
+        calibrator=calibrator,
+        risk_thresholds={key: float(thresholds[key]) for key in RISK_THRESHOLD_KEYS},
+        metadata=metadata,
+    )
     validate_serving_bundle(bundle, model_type)
     return bundle
+
+
+def _write_json(path: Path, content: dict[str, Any]) -> None:
+    path.write_text(json.dumps(content, ensure_ascii=False, indent=2), encoding="utf-8")

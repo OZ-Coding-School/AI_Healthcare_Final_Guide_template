@@ -2,27 +2,54 @@
 from core.config import settings
 from src.enums import ModelType
 
-# 서빙 번들 위치: 모델 종류만으로 찾는 고정 경로, 버전은 번들 메타데이터와 매니페스트에 기록
+# 서빙 아티팩트 위치: 모델마다 폴더 1개, 버전은 metadata.json과 매니페스트에 기록
+#
+# artifacts/models/knhanes_serving/
+# ├── serving_manifest.json        모델별 폴더와 metadata.json 해시
+# └── diabetes_risk_model/
+#     ├── model.pkl                학습된 분류기
+#     ├── preprocessor.pkl         Train에만 fit한 전처리기 (결측 대치, 원-핫 등)
+#     ├── calibrator.pkl           확률 보정기
+#     ├── thresholds.json          위험 등급 경계와 산출 기준
+#     └── metadata.json            출처, 입력 스키마, 학습 범위, 버전, 파일 해시
 SERVING_MODEL_DIR = settings.MODEL_DIR / "knhanes_serving"
 SERVING_MANIFEST_NAME = "serving_manifest.json"
-SERVING_BUNDLE_SCHEMA_VERSION = 1
+SERVING_BUNDLE_SCHEMA_VERSION = 2
+
+SERVING_MODEL_FILE = "model.pkl"
+SERVING_PREPROCESSOR_FILE = "preprocessor.pkl"
+SERVING_CALIBRATOR_FILE = "calibrator.pkl"
+SERVING_THRESHOLDS_FILE = "thresholds.json"
+SERVING_METADATA_FILE = "metadata.json"
+SERVING_HASHED_FILES = [
+    SERVING_MODEL_FILE,
+    SERVING_PREPROCESSOR_FILE,
+    SERVING_CALIBRATOR_FILE,
+    SERVING_THRESHOLDS_FILE,
+]
 
 
-def serving_bundle_filename(model_type: ModelType) -> str:
-    return f"{model_type}.pkl"
+def serving_model_dirname(model_type: ModelType) -> str:
+    return f"{model_type}_model"
 
 
-# 서빙 번들 메타데이터의 필수 항목: 없으면 학습 결과와 연결할 수 없어 로드를 거부
+# metadata.json의 필수 항목: 없으면 학습 결과와 연결할 수 없어 로드를 거부
 SERVING_METADATA_REQUIRED_KEYS = [
     "schema_version",
     "model_type",
     "train_set",
     "algorithm",
+    "hyperparameters",
+    "calibration_method",
     "source_model_sha256",
+    "training_data_sha256",
     "created_at",
     "library_versions",
     "input_schema",
     "numeric_ranges",
+    "feature_names",
+    "feature_metadata",
+    "files",
 ]
 
 # 버전이 다르면 경고하는 라이브러리(배포 이름): 번들의 직렬화·예측에 직접 관여

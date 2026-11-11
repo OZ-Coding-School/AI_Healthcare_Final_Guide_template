@@ -18,11 +18,19 @@ from src.components.knhanes_serving_bundle import (
     build_serving_metadata,
     file_sha256,
     load_serving_bundle,
+    manifest_entry,
+    save_serving_artifacts,
     write_manifest,
 )
 from src.components.model_trainer import BinaryClassificationModelTrainer, ModelBundle
 from src.enums import ModelAlgorithm, ModelType
-from src.knhanes_inference_configs import SERVING_MODEL_DIR, serving_bundle_filename
+from src.knhanes_inference_configs import (
+    SERVING_HASHED_FILES,
+    SERVING_METADATA_FILE,
+    SERVING_MODEL_DIR,
+    SERVING_THRESHOLDS_FILE,
+    serving_model_dirname,
+)
 from src.pipelines.inference_pipeline import KnhanesRiskPredictor
 from tests.test_knhanes_input_adapter import valid_payload
 
@@ -88,35 +96,41 @@ def _build_synthetic_bundle(model_type: ModelType, raw: pd.DataFrame, rng: np.ra
         model_type=model_type,
         train_set="synthetic",
         algorithm=str(ModelAlgorithm.LIGHTGBM),
+        hyperparameters={"n_estimators": 30, "verbose": -1},
+        calibration_method="sigmoid",
         source_model_sha256="0" * 64,
+        training_data_sha256={},
         X_train=features,
         test_metrics={},
     )
     return bundle
 
 
-def _write_serving_dir(model_dir: Path, bundles: dict[ModelType, ModelBundle]) -> None:
-    model_dir.mkdir(parents=True, exist_ok=True)
+def _write_serving_dir(serving_dir: Path, bundles: dict[ModelType, ModelBundle]) -> None:
     manifest = {}
     for model_type, bundle in bundles.items():
-        path = model_dir / serving_bundle_filename(model_type)
-        bundle.save(path)
-        manifest[str(model_type)] = {"file": path.name, "sha256": file_sha256(path)}
-    write_manifest(model_dir, manifest)
+        metadata_path = save_serving_artifacts(
+            bundle, serving_dir / serving_model_dirname(model_type), threshold_criteria={"group": "synthetic"}
+        )
+        manifest[str(model_type)] = manifest_entry(serving_dir, model_type, metadata_path)
+    write_manifest(serving_dir, manifest)
 
 
 @pytest.fixture(scope="module")
-def serving_dir(tmp_path_factory) -> Path:
+def synthetic_bundles() -> dict[ModelType, ModelBundle]:
     rng = np.random.default_rng(42)
     raw = pd.concat(
         [to_knhanes_raw_frame(parse_service_input(_random_payload(rng))) for _ in range(SYNTHETIC_ROWS)],
         ignore_index=True,
     )
-    model_dir = tmp_path_factory.mktemp("serving")
-    _write_serving_dir(
-        model_dir, {model_type: _build_synthetic_bundle(model_type, raw, rng) for model_type in ModelType}
-    )
-    return model_dir
+    return {model_type: _build_synthetic_bundle(model_type, raw, rng) for model_type in ModelType}
+
+
+@pytest.fixture(scope="module")
+def serving_dir(tmp_path_factory, synthetic_bundles) -> Path:
+    serving_dir = tmp_path_factory.mktemp("serving")
+    _write_serving_dir(serving_dir, synthetic_bundles)
+    return serving_dir
 
 
 @pytest.fixture(scope="module")
@@ -207,46 +221,115 @@ class TestKnhanesRiskPredictor:
         assert "247" not in caplog.text
 
 
-class TestServingBundleLoading:
-    def test_saved_bundle_reloads_with_identical_predictions(self, serving_dir):
-        features = KnhanesPreprocessor(use_case=ModelType.DIABETES_RISK).preprocess(
+def _rewrite_metadata(serving_dir: Path, model_type: ModelType, update: dict[str, Any]) -> None:
+    """metadata.json을 수정하고 매니페스트 해시를 맞춥니다. 내용 검증이 해시 검증과 별개로 동작하는지 보기 위함입니다."""
+    metadata_path = serving_dir / serving_model_dirname(model_type) / SERVING_METADATA_FILE
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata.update(update)
+    for key in [key for key, value in update.items() if value is None]:
+        del metadata[key]
+    metadata_path.write_text(json.dumps(metadata, ensure_ascii=False), encoding="utf-8")
+    manifest = json.loads((serving_dir / "serving_manifest.json").read_text(encoding="utf-8"))
+    manifest[str(model_type)]["metadata_sha256"] = file_sha256(metadata_path)
+    write_manifest(serving_dir, manifest)
+
+
+class TestServingArtifacts:
+    def test_artifacts_are_saved_as_separate_files(self, serving_dir):
+        model_dir = serving_dir / serving_model_dirname(ModelType.DIABETES_RISK)
+        assert sorted(path.name for path in model_dir.iterdir()) == sorted(
+            [*SERVING_HASHED_FILES, SERVING_METADATA_FILE]
+        )
+
+        thresholds = json.loads((model_dir / SERVING_THRESHOLDS_FILE).read_text(encoding="utf-8"))
+        assert thresholds["moderate"] == 0.2
+        assert thresholds["high"] == 0.6
+        assert thresholds["criteria"] == {"group": "synthetic"}
+
+        metadata = json.loads((model_dir / SERVING_METADATA_FILE).read_text(encoding="utf-8"))
+        assert metadata["calibration_method"] == "sigmoid"
+        assert set(metadata["files"]) == set(SERVING_HASHED_FILES)
+
+    @pytest.mark.parametrize("model_type", list(ModelType))
+    def test_reloaded_artifacts_predict_identically(self, serving_dir, synthetic_bundles, model_type):
+        original = synthetic_bundles[model_type]
+        features = KnhanesPreprocessor(use_case=model_type).preprocess(
             to_knhanes_raw_frame(parse_service_input(valid_payload()))
         )
-        loaded = load_serving_bundle(serving_dir, ModelType.DIABETES_RISK)
-        direct = ModelBundle.load(serving_dir / serving_bundle_filename(ModelType.DIABETES_RISK))
-        assert np.array_equal(loaded.predict_proba(features), direct.predict_proba(features))
+        loaded = load_serving_bundle(serving_dir, model_type)
+        assert np.array_equal(loaded.predict_proba(features), original.predict_proba(features))
+        assert loaded.risk_thresholds == original.risk_thresholds
+        assert loaded.feature_names == original.feature_names
 
-    def test_hash_mismatch_is_rejected(self, serving_dir, tmp_path):
-        model_dir = _copy_serving_dir(serving_dir, tmp_path)
-        with (model_dir / serving_bundle_filename(ModelType.DIABETES_RISK)).open("ab") as file:
-            file.write(b"tampered")
-        with pytest.raises(ModelArtifactError, match="hash"):
-            load_serving_bundle(model_dir, ModelType.DIABETES_RISK)
+    @pytest.mark.parametrize("file_name", ["model.pkl", "preprocessor.pkl", "calibrator.pkl", "thresholds.json"])
+    def test_tampered_artifact_is_rejected(self, serving_dir, tmp_path, file_name):
+        serving_copy = _copy_serving_dir(serving_dir, tmp_path)
+        with (serving_copy / serving_model_dirname(ModelType.DIABETES_RISK) / file_name).open("ab") as file:
+            file.write(b" ")
+        with pytest.raises(ModelArtifactError, match=f"{file_name} hash"):
+            load_serving_bundle(serving_copy, ModelType.DIABETES_RISK)
+
+    def test_tampered_metadata_is_rejected(self, serving_dir, tmp_path):
+        serving_copy = _copy_serving_dir(serving_dir, tmp_path)
+        with (serving_copy / serving_model_dirname(ModelType.DIABETES_RISK) / SERVING_METADATA_FILE).open("ab") as file:
+            file.write(b" ")
+        with pytest.raises(ModelArtifactError, match="metadata hash"):
+            load_serving_bundle(serving_copy, ModelType.DIABETES_RISK)
+
+    def test_missing_artifact_is_rejected(self, serving_dir, tmp_path):
+        serving_copy = _copy_serving_dir(serving_dir, tmp_path)
+        (serving_copy / serving_model_dirname(ModelType.DIABETES_RISK) / "calibrator.pkl").unlink()
+        with pytest.raises(ModelArtifactError, match="not found"):
+            load_serving_bundle(serving_copy, ModelType.DIABETES_RISK)
 
     def test_missing_manifest_is_rejected(self, tmp_path):
         with pytest.raises(ModelArtifactError, match="manifest"):
             KnhanesRiskPredictor(model_dir=tmp_path)
 
-    def test_bundle_for_another_model_type_is_rejected(self, serving_dir, tmp_path):
-        model_dir = _copy_serving_dir(serving_dir, tmp_path)
-        bundle = ModelBundle.load(model_dir / serving_bundle_filename(ModelType.DIABETES_RISK))
-        _write_serving_dir(model_dir, {ModelType.DIABETES_RISK: bundle, ModelType.HYPERTENSION_RISK: bundle})
+    def test_artifacts_for_another_model_type_are_rejected(self, serving_dir, tmp_path):
+        serving_copy = _copy_serving_dir(serving_dir, tmp_path)
+        diabetes_metadata = serving_copy / serving_model_dirname(ModelType.DIABETES_RISK) / SERVING_METADATA_FILE
+        write_manifest(
+            serving_copy,
+            {str(model_type): manifest_entry(serving_copy, model_type, diabetes_metadata) for model_type in ModelType},
+        )
         with pytest.raises(ModelArtifactError, match="built for"):
-            load_serving_bundle(model_dir, ModelType.HYPERTENSION_RISK)
+            load_serving_bundle(serving_copy, ModelType.HYPERTENSION_RISK)
 
-    def test_bundle_without_metadata_is_rejected(self, serving_dir, tmp_path):
-        model_dir = _copy_serving_dir(serving_dir, tmp_path)
-        bundle = ModelBundle.load(model_dir / serving_bundle_filename(ModelType.DIABETES_RISK))
-        bundle.metadata = None
-        _write_serving_dir(model_dir, {ModelType.DIABETES_RISK: bundle})
+    def test_metadata_without_required_key_is_rejected(self, serving_dir, tmp_path):
+        serving_copy = _copy_serving_dir(serving_dir, tmp_path)
+        _rewrite_metadata(serving_copy, ModelType.DIABETES_RISK, {"input_schema": None})
+        with pytest.raises(ModelArtifactError, match="missing"):
+            load_serving_bundle(serving_copy, ModelType.DIABETES_RISK)
+
+    def test_unsupported_schema_version_is_rejected(self, serving_dir, tmp_path):
+        serving_copy = _copy_serving_dir(serving_dir, tmp_path)
+        _rewrite_metadata(serving_copy, ModelType.DIABETES_RISK, {"schema_version": 1})
+        with pytest.raises(ModelArtifactError, match="schema version"):
+            load_serving_bundle(serving_copy, ModelType.DIABETES_RISK)
+
+    def test_save_requires_metadata(self, synthetic_bundles, tmp_path):
+        bundle = synthetic_bundles[ModelType.DIABETES_RISK]
+        legacy = ModelBundle(
+            model=bundle.model,
+            preprocessor=bundle.preprocessor,
+            post_preprocessor=None,
+            feature_names=bundle.feature_names,
+            calibrator=bundle.calibrator,
+            risk_thresholds=bundle.risk_thresholds,
+        )
         with pytest.raises(ModelArtifactError, match="metadata"):
-            load_serving_bundle(model_dir, ModelType.DIABETES_RISK)
+            save_serving_artifacts(legacy, tmp_path / "model")
 
-    def test_training_bundle_without_metadata_still_loads(self, serving_dir, tmp_path):
-        bundle = ModelBundle.load(serving_dir / serving_bundle_filename(ModelType.DIABETES_RISK))
+    def test_training_bundle_without_metadata_still_loads(self, synthetic_bundles, tmp_path):
+        bundle = synthetic_bundles[ModelType.DIABETES_RISK]
         legacy_path = tmp_path / "legacy.pkl"
-        bundle.metadata = None
-        bundle.save(legacy_path)
+        ModelBundle(
+            model=bundle.model,
+            preprocessor=bundle.preprocessor,
+            post_preprocessor=None,
+            feature_names=bundle.feature_names,
+        ).save(legacy_path)
         assert ModelBundle.load(legacy_path).metadata is None
 
 
