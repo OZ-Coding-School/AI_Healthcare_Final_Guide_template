@@ -5,8 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import ORJSONResponse
 from starlette.exceptions import HTTPException
 
-from app.core import logger, settings
-from app.core.config import Env
+from app.core import logger
 
 
 async def http_exception_handler(request: Request, exc: Exception) -> ORJSONResponse:
@@ -30,28 +29,25 @@ async def http_exception_handler(request: Request, exc: Exception) -> ORJSONResp
 
 async def validation_exception_handler(request: Request, exc: Exception) -> ORJSONResponse:
     validation_exc = cast(RequestValidationError, exc)
-    if settings.ENV in [Env.LOCAL, Env.DEV]:
-        logger.warning(
-            "[ValidationError] %s %s\nrequest_body=%s\nerrors=%s",
-            request.method,
-            request.url.path,
-            validation_exc.body,
-            validation_exc.errors(),
-        )
-    else:
-        logger.warning(
-            "[ValidationError] %s %s\nerrors=%s",
-            request.method,
-            request.url.path,
-            validation_exc.errors(),
-        )
+    # Pydantic 오류에는 거부된 실제 입력값(input/context)이 포함될 수 있으므로
+    # 로그와 응답에는 필드 위치와 일반 오류 설명만 남깁니다.
+    safe_errors = [
+        {key: error[key] for key in ("loc", "msg", "type") if key in error}
+        for error in validation_exc.errors()
+    ]
+    logger.warning(
+        "[ValidationError] %s %s\nerrors=%s",
+        request.method,
+        request.url.path,
+        safe_errors,
+    )
 
     return ORJSONResponse(
         status_code=422,
         content={
             "code": "VALIDATION_ERROR",
             "message": "요청 데이터가 올바르지 않습니다.",
-            "errors": validation_exc.errors(),
+            "errors": safe_errors,
         },
     )
 
