@@ -77,6 +77,56 @@ class TestAnnualHealthScreeningAPI(TestCase):
             response = await client.post(self.api_path, json=data, headers=headers)
             assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
+    async def test_create_annual_health_screening_with_family_history_detail(self):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            token = await self.get_token(client)
+            headers = {"Authorization": f"Bearer {token}"}
+            data = self.get_valid_screening_data()
+            data.update(
+                family_history_diabetes=True,
+                diabetes_family_history_father="YES",
+                diabetes_family_history_mother="UNKNOWN",
+                diabetes_family_history_siblings="NO_SIBLINGS",
+            )
+
+            response = await client.post(self.api_path, json=data, headers=headers)
+            assert response.status_code == status.HTTP_201_CREATED
+
+            screening_id = (await client.get(self.api_path, headers=headers)).json()[0]["id"]
+            detail = (await client.get(f"{self.api_path}/{screening_id}", headers=headers)).json()
+            assert detail["diabetes_family_history_father"] == "YES"
+            assert detail["diabetes_family_history_siblings"] == "NO_SIBLINGS"
+            # 입력하지 않은 질환의 상세는 비어 있습니다.
+            assert detail["hypertension_family_history_father"] is None
+
+    async def test_create_annual_health_screening_invalid_family_history_detail(self):
+        invalid_cases = [
+            # 세 항목 중 일부만 입력
+            {"diabetes_family_history_father": "YES"},
+            # 부모 항목에 형제자매 없음
+            {
+                "family_history_diabetes": True,
+                "diabetes_family_history_father": "NO_SIBLINGS",
+                "diabetes_family_history_mother": "YES",
+                "diabetes_family_history_siblings": "NO",
+            },
+            # 병력 여부와 상세가 다름
+            {
+                "family_history_diabetes": False,
+                "diabetes_family_history_father": "YES",
+                "diabetes_family_history_mother": "NO",
+                "diabetes_family_history_siblings": "NO",
+            },
+        ]
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            token = await self.get_token(client)
+            headers = {"Authorization": f"Bearer {token}"}
+            for case in invalid_cases:
+                data = self.get_valid_screening_data()
+                data.update(case)
+                response = await client.post(self.api_path, json=data, headers=headers)
+                assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT, case
+
     async def test_get_annual_health_screening_list_success(self):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             token = await self.get_token(client)
