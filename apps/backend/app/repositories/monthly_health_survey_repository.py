@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from tortoise.expressions import Q
@@ -49,9 +49,18 @@ class MonthlyHealthSurveyRepository:
         return await MonthlyHealthSurvey.get_or_none(user_id=user_id, id=survey_id)
 
     async def exists_this_month(self, user_id: UUID) -> bool:
-        now = datetime.now()
-        start_at = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        end_at = start_at.replace(day=31, hour=23, minute=59, second=59, microsecond=999999)
+        start_at, next_month_start = month_bounds(datetime.now())
         return await MonthlyHealthSurvey.filter(
-            user_id=user_id, created_at__gte=start_at, created_at__lte=end_at
+            user_id=user_id, created_at__gte=start_at, created_at__lt=next_month_start
         ).exists()
+
+
+def month_bounds(moment: datetime) -> tuple[datetime, datetime]:
+    """
+    moment가 속한 달의 시작 시각과 다음 달 시작 시각을 반환합니다.
+    끝을 "다음 달 1일 0시 미만"으로 두어 달 길이(28~31일)와 연도 경계에 상관없이 동작합니다.
+    """
+    start = moment.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    # 1일에서 32일을 더하면 항상 다음 달 안에 들어가므로, 다시 1일로 맞추면 다음 달 시작입니다.
+    next_start = (start + timedelta(days=32)).replace(day=1)
+    return start, next_start
