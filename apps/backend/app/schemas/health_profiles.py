@@ -1,9 +1,9 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Self
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core import settings
 from app.core.enums import Gender
@@ -41,6 +41,14 @@ class HealthProfileUpdateRequest(BaseModel):
     weight: Weight | None = None
     has_diabetes: bool | None = None
     has_hypertension: bool | None = None
+
+    @model_validator(mode="after")
+    def validate_update_fields(self) -> Self:
+        if not self.model_fields_set:
+            raise ValueError("수정할 항목을 한 개 이상 입력해야 합니다.")
+        if any(getattr(self, field_name) is None for field_name in self.model_fields_set):
+            raise ValueError("수정 항목은 null일 수 없습니다.")
+        return self
 
 
 class HealthProfileResponse(BaseSerializerModel):
