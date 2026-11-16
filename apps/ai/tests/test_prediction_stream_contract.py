@@ -6,11 +6,13 @@ from pydantic import ValidationError
 
 from tasks.prediction_stream_contract import (
     PREDICTION_RESULT_STREAM_PREFIX,
+    PREDICTION_SCHEMA_VERSION,
     FieldErrorDetail,
     PredictionErrorCode,
     PredictionResultMessage,
     PredictionTaskStatus,
     is_valid_task_id,
+    processing_stream_fields,
     result_stream_key,
 )
 from tests.prediction_worker_helpers import FIXED_NOW, TASK_ID
@@ -39,6 +41,17 @@ def test_succeeded_message_has_result_without_error_fields():
     assert all(isinstance(value, str) for value in fields.values())
 
 
+def test_processing_fields_have_no_payload_or_result():
+    fields = processing_stream_fields(TASK_ID, FIXED_NOW)
+
+    assert fields == {
+        "task_id": TASK_ID,
+        "schema_version": PREDICTION_SCHEMA_VERSION,
+        "status": "processing",
+        "started_at": FIXED_NOW.isoformat(),
+    }
+
+
 def test_failed_message_has_error_fields_without_result():
     message = PredictionResultMessage(
         task_id=TASK_ID,
@@ -65,6 +78,16 @@ def test_invalid_task_id_is_rejected(task_id):
     if isinstance(task_id, str):
         with pytest.raises(ValueError):
             result_stream_key(task_id)
+
+
+def test_final_message_cannot_be_processing():
+    with pytest.raises(ValidationError):
+        PredictionResultMessage(task_id=TASK_ID, status=PredictionTaskStatus.PROCESSING, completed_at=FIXED_NOW)
+
+
+def test_processing_fields_reject_invalid_task_id():
+    with pytest.raises(ValueError):
+        processing_stream_fields("a:b", FIXED_NOW)
 
 
 def test_succeeded_message_requires_result():

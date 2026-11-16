@@ -95,6 +95,38 @@ def test_valid_request_publishes_result_and_removes_request(redis_client):
     assert dead_letters(redis_client) == []
 
 
+def test_processing_entry_is_published_before_inference(redis_client):
+    seen: list[dict[str, str] | None] = []
+
+    class RecordingPredictor(FakePredictor):
+        def predict_all(self, payload):
+            # 추론이 시작될 때 결과 Stream에 처리 시작 항목이 이미 있어야 합니다.
+            seen.append(latest_result(redis_client))
+            return super().predict_all(payload)
+
+    consumer = make_consumer(redis_client, RecordingPredictor())
+    redis_client.xadd(PREDICTION_REQUEST_STREAM, make_request())
+
+    consumer.run_once()
+
+    processing = seen[0]
+    assert processing["status"] == "processing"
+    assert processing["schema_version"] == "2"
+    assert set(processing) == {"task_id", "schema_version", "status", "started_at"}
+    # 최종 결과가 처리 시작 항목을 대체해 1건만 남습니다.
+    entries = redis_client.xrange(result_stream_key(TASK_ID))
+    assert [fields["status"] for _, fields in entries] == ["succeeded"]
+
+
+def test_invalid_task_id_does_not_publish_processing(redis_client):
+    consumer = make_consumer(redis_client, FakePredictor())
+    redis_client.xadd(PREDICTION_REQUEST_STREAM, make_request(task_id="bad:id"))
+
+    consumer.run_once()
+
+    assert redis_client.keys(f"{PREDICTION_RESULT_STREAM_PREFIX}*") == []
+
+
 def test_duplicate_task_keeps_only_latest_result(redis_client):
     consumer = make_consumer(redis_client, FakePredictor())
     for _ in range(2):
@@ -123,7 +155,8 @@ def test_temporary_error_is_retried_and_succeeds(redis_client):
     redis_client.xadd(PREDICTION_REQUEST_STREAM, make_request())
 
     consumer.run_once()  # 1회차 실패: ACK하지 않고 Pending에 남김
-    assert latest_result(redis_client) is None
+    # 최종 결과는 없고 처리 시작 항목만 남아 Backend는 처리 중으로 봅니다.
+    assert latest_result(redis_client)["status"] == "processing"
     assert pending_count(redis_client) == 1
 
     consumer.run_once()  # 회수 후 성공
@@ -151,7 +184,7 @@ def test_invalid_task_id_goes_to_dead_letter_without_result(redis_client):
 
 def test_contract_violation_publishes_failure_and_dead_letter(redis_client):
     consumer = make_consumer(redis_client, FakePredictor())
-    redis_client.xadd(PREDICTION_REQUEST_STREAM, make_request(schema_version="2"))
+    redis_client.xadd(PREDICTION_REQUEST_STREAM, make_request(schema_version="1"))
 
     consumer.run_once()
 
@@ -163,7 +196,7 @@ def test_contract_violation_publishes_failure_and_dead_letter(redis_client):
 def test_dead_letter_does_not_store_payload(redis_client):
     consumer = make_consumer(redis_client, FakePredictor())
     payload = json.dumps(valid_payload(height=171.3))
-    redis_client.xadd(PREDICTION_REQUEST_STREAM, make_request(schema_version="2", payload=payload))
+    redis_client.xadd(PREDICTION_REQUEST_STREAM, make_request(schema_version="1", payload=payload))
 
     consumer.run_once()
 
@@ -211,12 +244,16 @@ def test_deleted_pending_message_is_cleared_without_processing(redis_client):
     consumer.run_once()
 
     assert predictor.calls == 1
-    assert latest_result(redis_client) is None
+    # 최종 결과는 발행하지 않습니다. 1회차의 처리 시작 항목만 남고, Backend는 보관 시간이 지나면 만료로 처리합니다.
+    assert latest_result(redis_client)["status"] == "processing"
     assert pending_count(redis_client) == 0
 
 
 def test_missing_group_is_recreated(redis_client):
-    consumer = make_consumer(redis_client, FakePredictor())
+    # 회수 주기를 길게 잡고 한 번 실행해 두어, 그룹이 사라진 뒤에는 XREADGROUP에서 NOGROUP이 나게 합니다.
+    # uv.lock의 fakeredis 2.36은 그룹이 없을 때 XPENDING 응답이 실제 Redis(NOGROUP 오류)와 달라 회수 단계를 피합니다.
+    consumer = make_consumer(redis_client, FakePredictor(), claim_interval_seconds=3600)
+    consumer.run_once()
     redis_client.xgroup_destroy(PREDICTION_REQUEST_STREAM, PREDICTION_CONSUMER_GROUP)
     redis_client.xadd(PREDICTION_REQUEST_STREAM, make_request())
 

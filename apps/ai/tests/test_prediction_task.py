@@ -74,7 +74,7 @@ def test_failed_after_retries_with_invalid_task_id_returns_no_result():
 @pytest.mark.parametrize(
     ("overrides", "error_field"),
     [
-        ({"schema_version": "2"}, "schema_version"),
+        ({"schema_version": "1"}, "schema_version"),  # 이전 계약 버전
         ({"requested_at": "yesterday"}, "requested_at"),
         ({"unexpected": "x"}, "unexpected"),
         ({"payload": "x" * (MAX_PAYLOAD_BYTES + 1)}, "payload"),
