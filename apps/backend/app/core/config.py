@@ -42,6 +42,11 @@ class Config(BaseSettings):
     REDIS_DB: int = 0
     REDIS_MAX_CONNECTION: int = 100
 
+    # 질병 위험도 예측 SSE: Nginx proxy_read_timeout(기본 60초)보다 짧게 유지합니다.
+    PREDICTION_SSE_TIMEOUT_SECONDS: int = 30
+    # 결과를 기다리는 동안 이 간격으로 heartbeat를 보내고 연결 종료 여부를 확인합니다.
+    PREDICTION_SSE_HEARTBEAT_SECONDS: int = 10
+
     COOKIE_DOMAIN: str = "localhost"
     CORS_ALLOW_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
