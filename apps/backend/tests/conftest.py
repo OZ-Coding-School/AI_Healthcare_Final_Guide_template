@@ -7,6 +7,7 @@ import fakeredis
 import pytest
 import pytest_asyncio
 from _pytest.fixtures import FixtureRequest
+from pydantic import SecretStr
 from tortoise import generate_config
 from tortoise.contrib.test import finalizer, initializer
 
@@ -46,6 +47,12 @@ def initialize(request: FixtureRequest) -> Generator[None, None]:
 @pytest_asyncio.fixture(autouse=True, scope="session")  # type: ignore[type-var]
 def event_loop() -> None:
     pass
+
+
+@pytest.fixture(autouse=True)
+def disable_llm_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    # .env에 실제 키가 있어도 테스트가 Claude API를 호출하지 않게 합니다. 필요한 테스트는 가짜 클라이언트와 함께 키를 따로 넣습니다.
+    monkeypatch.setattr(settings, "ANTHROPIC_API_KEY", SecretStr(""))
 
 
 @pytest.fixture(autouse=True)
