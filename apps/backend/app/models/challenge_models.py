@@ -7,16 +7,31 @@ from app.core.enums import ChallengeStatus, ChallengeType
 from app.models.base import TimestampModel
 
 if TYPE_CHECKING:
+    from .disease_prediction_models import DiseasePrediction
     from .user_models import User
 
 
 class PersonalChallenge(TimestampModel):
     id = fields.BigIntField(primary_key=True, auto_increment=True)
     user: fields.ForeignKeyRelation["User"] = fields.ForeignKeyField("models.User", related_name="personal_challenges")
+    prediction: fields.ForeignKeyNullableRelation["DiseasePrediction"] = fields.ForeignKeyField(
+        "models.DiseasePrediction",
+        related_name="challenges",
+        null=True,
+        on_delete=fields.SET_NULL,
+        description="추천 근거가 된 질병 위험도 예측",
+    )
     title = fields.CharField(max_length=30, description="개인 챌린지 제목")
     description = fields.TextField(max_length=1000, description="개인 챌린지 설명")
     challenge_type = fields.CharEnumField(ChallengeType, description="챌린지 유형(일간, 주간, 월간, 횟수 기반)")
     expected_effect = fields.TextField(max_length=300, description="챌린지 수행 후 기대 효과")
+    total_rounds = fields.SmallIntField(
+        null=True, description="목표 회차 수(일간: 일, 주간: 주, 월간: 개월, 횟수형: 횟수)"
+    )
+    target_diseases: list[str] = fields.JSONField(default=list, description="챌린지가 겨냥하는 질환(model_type 목록)")
+    basis: list[dict[str, str]] = fields.JSONField(
+        default=list, description="추천 근거 요인 목록({model_type, feature, display_name})"
+    )
     status = fields.CharEnumField(
         ChallengeStatus, default=ChallengeStatus.PENDING, description="챌린지 상태(진행중, 완료)"
     )

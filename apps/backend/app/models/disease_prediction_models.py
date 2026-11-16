@@ -3,11 +3,17 @@ from typing import TYPE_CHECKING, Any
 from tortoise import fields
 from uuid6 import uuid7
 
-from ..core.enums import DiseasePredictionStatus, DiseaseRiskLevel, PredictionModelType
+from ..core.enums import (
+    ChallengeRecommendationStatus,
+    DiseasePredictionStatus,
+    DiseaseRiskLevel,
+    PredictionModelType,
+)
 from ..core.utils.common import get_enum_max_length
 from .base import TimestampModel
 
 if TYPE_CHECKING:
+    from .challenge_models import PersonalChallenge
     from .health_profiles import AnnualHealthScreening, MonthlyHealthSurvey
     from .user_models import User
 
@@ -45,8 +51,19 @@ class DiseasePrediction(TimestampModel):
     errors: list[dict[str, str]] | None = fields.JSONField(null=True, description="입력 오류 필드와 사유")
     started_at = fields.DatetimeField(null=True, description="AI Worker가 추론을 시작한 시간")
     completed_at = fields.DatetimeField(null=True, description="예측 완료(성공·실패) 시간")
+    challenge_status = fields.CharEnumField(
+        enum_type=ChallengeRecommendationStatus,
+        max_length=get_enum_max_length(ChallengeRecommendationStatus),
+        null=True,
+        description="LLM 챌린지 추천 상태 (예측 완료 전에는 null)",
+    )
+    challenge_error_code = fields.CharField(max_length=30, null=True, description="챌린지 추천 실패 코드")
+    challenge_model_name = fields.CharField(max_length=100, null=True, description="챌린지 추천에 사용한 LLM 모델 이름")
+    challenge_started_at = fields.DatetimeField(null=True, description="챌린지 추천 생성 시작 시간")
+    challenge_completed_at = fields.DatetimeField(null=True, description="챌린지 추천 완료(성공·실패) 시간")
 
     results: fields.ReverseRelation["DiseasePredictionResult"]
+    challenges: fields.ReverseRelation["PersonalChallenge"]
 
     class Meta:
         table = "disease_predictions"
