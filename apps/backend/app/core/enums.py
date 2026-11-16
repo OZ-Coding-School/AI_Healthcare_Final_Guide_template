@@ -184,6 +184,23 @@ class ChallengeStatus(StrEnum):
         return mapping[self]
 
 
+class ChallengeRecommendationStatus(StrEnum):
+    # 예측이 COMPLETED가 되면 자동으로 시작합니다. 시작 전에는 값이 없습니다(null).
+    # 정상: PROCESSING → COMPLETED, 비정상: PROCESSING → FAILED (재시도 API로 다시 PROCESSING)
+    PROCESSING = "PROCESSING"  # LLM이 챌린지를 생성하는 중
+    COMPLETED = "COMPLETED"  # 추천 챌린지 저장 완료
+    FAILED = "FAILED"  # 추천 생성 실패
+
+    @property
+    def label(self) -> str:
+        mapping = {
+            ChallengeRecommendationStatus.PROCESSING: "추천 생성 중",
+            ChallengeRecommendationStatus.COMPLETED: "추천 완료",
+            ChallengeRecommendationStatus.FAILED: "추천 실패",
+        }
+        return mapping[self]
+
+
 class ExerciseType(StrEnum):
     CARDIO = "CARDIO"  # 유산소
     STRENGTH = "STRENGTH"  # 근력
