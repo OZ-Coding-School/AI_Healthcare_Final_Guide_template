@@ -2,6 +2,7 @@
 예측 요청 Stream을 Consumer Group으로 읽어 처리하고 결과를 요청별 Stream에 발행합니다.
 
 처리 보장: 최소 1회. 결과 발행·ACK·요청 삭제를 한 트랜잭션으로 묶습니다.
+요청을 가져가면 결과 Stream에 처리 시작(processing) 항목을 먼저 남기고, 최종 결과가 이를 대체합니다.
 Worker가 처리 중 멈추면 메시지는 Pending에 남고, CLAIM_MIN_IDLE_MS가 지나면 다른 Worker(또는 재시작한 Worker)가 회수합니다.
 같은 요청이 두 번 처리될 수 있으므로 결과 Stream은 마지막 1건만 보관합니다.
 
@@ -38,6 +39,8 @@ from tasks.prediction_stream_contract import (
     RESULT_TTL_SECONDS,
     PredictionErrorCode,
     PredictionTaskStatus,
+    is_valid_task_id,
+    processing_stream_fields,
     result_stream_key,
 )
 from tasks.prediction_task import PredictionTask, TaskOutcome
@@ -194,6 +197,7 @@ class PredictionStreamConsumer:
 
     def _process(self, message_id: str, fields: Mapping[str, str]) -> None:
         started = time.monotonic()
+        self._publish_processing(fields.get("task_id"))
         try:
             outcome = self._task.handle(fields)
         except Exception as error:
@@ -208,6 +212,21 @@ class PredictionStreamConsumer:
         logger.info(
             "Task %s %s%s in %.0f ms", outcome.task_id, status, f" ({error_code})" if error_code else "", elapsed_ms
         )
+
+    def _publish_processing(self, task_id: str | None) -> None:
+        """
+        처리 시작을 결과 Stream에 남깁니다. 최종 결과가 같은 키에서 이 항목을 대체합니다(MAXLEN 1).
+        task_id가 잘못된 메시지는 결과 키를 만들 수 없으므로 건너뜁니다.
+        회수한 메시지를 다시 처리할 때도 남기므로, 앞선 Worker가 멈췄어도 Backend는 처리 중으로 봅니다.
+        """
+        if not is_valid_task_id(task_id):
+            return
+        assert task_id is not None
+        key = result_stream_key(task_id)
+        pipe = self._client.pipeline(transaction=True)
+        pipe.xadd(key, processing_stream_fields(task_id, datetime.now(UTC)), maxlen=1, approximate=False)  # type: ignore[arg-type]
+        pipe.expire(key, RESULT_TTL_SECONDS)
+        pipe.execute()
 
     def _finish(self, message_id: str, outcome: TaskOutcome, reason: str | None = None) -> None:
         """결과 발행, 실패 기록, ACK, 요청 삭제를 한 트랜잭션으로 처리합니다."""
