@@ -14,5 +14,8 @@ class AnnualHealthScreeningRepository:
     async def get_by_id(self, user_id: UUID, screening_id: UUID) -> AnnualHealthScreening | None:
         return await AnnualHealthScreening.get_or_none(user_id=user_id, id=screening_id)
 
+    async def get_latest_by_user_id(self, user_id: UUID) -> AnnualHealthScreening | None:
+        return await AnnualHealthScreening.filter(user_id=user_id).order_by("-screening_at", "-created_at").first()
+
     async def delete_by_id(self, user_id: UUID, screening_id: UUID) -> int:
         return await AnnualHealthScreening.filter(user_id=user_id, id=screening_id).delete()
