@@ -26,6 +26,7 @@ GET  /challenges?status=PENDING                  ──▶ 내 챌린지 목록
   | `FAILED` | 추천 실패 | `error_code`로 원인 구분. retry API로 다시 생성 |
 
   - 생성 중 서버가 재시작되어 5분(`CHALLENGE_RECOMMENDATION_STALE_SECONDS`) 넘게 `PROCESSING`에 머문 추천은 조회할 때 다시 시작합니다.
+  - API 키 없이 `LLM_NOT_CONFIGURED`로 실패한 추천은, 키를 등록하고 서버를 다시 시작한 뒤 조회하면 retry 없이 다시 생성됩니다. 다른 원인으로 실패한 추천은 retry API로 다시 생성합니다.
 
 - **추천 실패 코드 (`error_code`)**
 
