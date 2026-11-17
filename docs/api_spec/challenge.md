@@ -130,6 +130,23 @@ GET  /challenges?status=PENDING                  ──▶ 내 챌린지 목록
 
 ---
 
+#### 캐시 (Redis)
+
+자주 조회되는 1번(추천 조회)과 3번(목록 조회)에 Redis Key-Value 캐시를 적용합니다.
+
+| API | 캐시 대상 | 키 | TTL | 무효화 |
+| :--- | :--- | :--- | :--- | :--- |
+| 1. 추천 조회 | `status`가 `COMPLETED`인 응답만 | `challenge:recommendation:{user_id}:{prediction_id}` | 600초 + 무작위 0~20% | 추천이 저장될 때 삭제 |
+| 3. 목록 조회 | 사용자·`status` 필터별 응답 | `challenge:list:{user_id}:v{version}:{status\|all}` | 60초 + 무작위 0~20% | 추천이 저장되면 `challenge:list:version:{user_id}`를 1 올림 |
+
+- 생성 중(`PROCESSING`)·실패(`FAILED`) 상태는 몇 초 안에 바뀌므로 캐시하지 않습니다. 생성 중 반복 조회는 매번 DB 상태를 반환합니다.
+- Cache Stampede는 Randomized TTL로 막습니다. 캐시를 다시 채우는 비용이 인덱스 조회 한 번이라 Stale-While-Revalidate·PER은 쓰지 않습니다.
+- 목록은 상태 필터마다 키가 달라, 키를 찾아 지우는 대신 버전을 올려 이전 키를 읽지 않게 합니다. 이전 키는 TTL로 사라집니다.
+- Redis 장애 시 캐시 없이 DB 결과를 반환합니다. 캐시 때문에 API가 실패하지 않습니다.
+- 챌린지 수락·기록 API를 추가할 때는 두 캐시를 함께 무효화해야 합니다.
+
+---
+
 #### 환경 변수
 
 | 이름 | 기본값 | 설명 |
@@ -141,3 +158,6 @@ GET  /challenges?status=PENDING                  ──▶ 내 챌린지 목록
 | `LLM_MAX_ATTEMPTS` | `2` | 일시적 장애·형식 오류를 포함한 최대 호출 횟수 |
 | `CHALLENGE_RECOMMENDATION_COUNT` | `3` | 예측 1건당 추천 챌린지 수 |
 | `CHALLENGE_ACCEPT_EXPIRE_DAYS` | `7` | 추천 챌린지 수락 기한(일) |
+| `CHALLENGE_RECOMMENDATION_CACHE_TTL_SECONDS` | `600` | 완료된 추천 캐시 기본 TTL(초) |
+| `CHALLENGE_LIST_CACHE_TTL_SECONDS` | `60` | 챌린지 목록 캐시 기본 TTL(초) |
+| `CACHE_TTL_JITTER_RATIO` | `0.2` | TTL에 무작위로 더하는 최대 비율 |
