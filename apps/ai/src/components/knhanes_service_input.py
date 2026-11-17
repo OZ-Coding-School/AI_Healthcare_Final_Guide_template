@@ -6,12 +6,13 @@ Backend의 건강 프로필·건강검진 기록 형식을 따르며, 혈액·�
 """
 
 from collections.abc import Mapping
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
+from core.config import settings
 from src.components.knhanes_inference_errors import InferenceInputError, InputFieldError
 from src.knhanes_inference_configs import SERVICE_INPUT_RANGES
 from src.knhanes_merge_configs import KNHANES_ADULT_MIN_AGE
@@ -127,7 +128,7 @@ class ServiceHealthInput(BaseModel):
 
     @model_validator(mode="after")
     def _validate_consistency(self) -> "ServiceHealthInput":
-        if self.screening_date > date.today():
+        if self.screening_date > datetime.now(settings.TIMEZONE).date():
             raise ValueError("screening_date cannot be in the future")
         if self.birth_date >= self.screening_date:
             raise ValueError("birth_date must be before screening_date")
