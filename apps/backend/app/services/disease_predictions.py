@@ -7,6 +7,7 @@
     3. AI Worker가 Task를 가져가면 결과 Stream에 처리 시작 항목을 남기고(→ PROCESSING),
        추론을 마치면 최종 결과로 대체합니다(→ COMPLETED·FAILED).
     4. SSE 또는 상세 조회에서 결과 Stream을 읽어 상태를 DB에 반영합니다.
+    5. COMPLETED로 처음 확정되면 LLM 챌린지 추천을 백그라운드로 시작합니다(on_completed).
 
 Task 상태: 정상 PENDING → PROCESSING → COMPLETED, 비정상 PENDING → PROCESSING → FAILED.
 결과 Stream 항목은 _apply_result_entry 한 곳에서만 반영하며, 상태 조건부 업데이트로 여러 번 호출되어도 한 번만 저장됩니다.
@@ -50,6 +51,7 @@ from app.repositories.disease_prediction_repository import DiseasePredictionRepo
 from app.repositories.health_profile_repository import HealthProfileRepository
 from app.repositories.monthly_health_survey_repository import MonthlyHealthSurveyRepository
 from app.schemas.disease_predictions import DiseasePredictionCreateRequest, DiseasePredictionResponse
+from app.services.challenge_recommendations import start_challenge_recommendation
 from app.services.disease_prediction_input import PredictionInputError, build_prediction_payload
 
 # SSE 이벤트 이름
@@ -84,6 +86,7 @@ class DiseasePredictionService:
         monthly_health_survey_repo: MonthlyHealthSurveyRepository,
         redis_client: redis.Redis,
         clock: Callable[[], datetime] = _now,
+        on_completed: Callable[[UUID], Awaitable[None]] = start_challenge_recommendation,
     ) -> None:
         self.repo = repository
         self.health_profile_repo = health_profile_repo
@@ -91,6 +94,8 @@ class DiseasePredictionService:
         self.survey_repo = monthly_health_survey_repo
         self.redis = redis_client
         self.clock = clock
+        # 예측이 COMPLETED로 처음 확정될 때 한 번 호출합니다 (14번 LLM 챌린지 추천 시작).
+        self.on_completed = on_completed
 
     async def request_prediction(self, user_id: UUID, data: DiseasePredictionCreateRequest) -> DiseasePrediction:
         profile = await self.health_profile_repo.get_health_profile_by_user_id(user_id)
@@ -276,6 +281,8 @@ class DiseasePredictionService:
                 prediction_id, [_result_record(result) for result in message.result.values()], now
             )
             state = DiseasePredictionStatus.COMPLETED
+            if saved:
+                await self.on_completed(prediction_id)
         else:
             assert message.error_code is not None
             errors = (

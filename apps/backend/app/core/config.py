@@ -47,6 +47,23 @@ class Config(BaseSettings):
     # 결과를 기다리는 동안 이 간격으로 heartbeat를 보내고 연결 종료 여부를 확인합니다.
     PREDICTION_SSE_HEARTBEAT_SECONDS: int = 10
 
+    # LLM(Claude) 챌린지 추천: 키가 비어 있으면 추천은 LLM_NOT_CONFIGURED로 실패 처리됩니다.
+    ANTHROPIC_API_KEY: SecretStr = SecretStr("")
+    ANTHROPIC_API_URL: str = "https://api.anthropic.com/v1/messages"
+    ANTHROPIC_API_VERSION: str = "2026-10-21"
+    LLM_MODEL: str = "claude-haiku-5-5"
+    LLM_MAX_TOKENS: int = 2048
+    LLM_TIMEOUT_SECONDS: float = 30.0
+    # 호출 실패·응답 형식 오류를 합친 최대 시도 횟수
+    LLM_MAX_ATTEMPTS: int = 2
+
+    # 예측 1건당 추천할 챌린지 수
+    CHALLENGE_RECOMMENDATION_COUNT: int = 3
+    # 추천 챌린지 수락 기한(일)
+    CHALLENGE_ACCEPT_EXPIRE_DAYS: int = 7
+    # 생성 중(PROCESSING) 상태가 이 시간보다 오래되면 서버 재시작 등으로 중단된 것으로 보고 다시 시작합니다.
+    CHALLENGE_RECOMMENDATION_STALE_SECONDS: int = 300
+
     COOKIE_DOMAIN: str = "localhost"
     CORS_ALLOW_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
