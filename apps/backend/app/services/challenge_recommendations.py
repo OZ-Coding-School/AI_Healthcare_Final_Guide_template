@@ -159,14 +159,22 @@ class ChallengeRecommendationLauncher:
         self._tasks: set[asyncio.Task[None]] = set()
 
     async def start(self, prediction_id: UUID, retry: bool = False) -> bool:
-        """추천을 선점했으면 백그라운드 작업을 시작하고 True를 반환합니다."""
+        """
+        추천을 선점했으면 백그라운드 작업을 시작하고 True를 반환합니다.
+        키가 설정되어 있으면, 키가 없어서 실패(LLM_NOT_CONFIGURED)했던 추천도 다시 시작합니다.
+        그래서 키를 나중에 등록해도 사용자가 추천을 조회하면 별도 조작 없이 생성됩니다.
+        """
         repo = self.repository_factory()
         now = self.clock()
         stale_before = now - timedelta(seconds=settings.CHALLENGE_RECOMMENDATION_STALE_SECONDS)
-        if not await repo.claim_recommendation(prediction_id, now, stale_before, retry=retry):
+        key_configured = bool(settings.ANTHROPIC_API_KEY.get_secret_value())
+        recover = ChallengeRecommendationErrorCode.LLM_NOT_CONFIGURED if key_configured else None
+        if not await repo.claim_recommendation(
+            prediction_id, now, stale_before, retry=retry, recover_error_code=recover
+        ):
             return False
 
-        if not settings.ANTHROPIC_API_KEY.get_secret_value():
+        if not key_configured:
             # 키가 없으면 호출할 수 없으므로 작업을 만들지 않고 바로 실패로 남깁니다.
             await repo.mark_recommendation_failed(
                 prediction_id, now, ChallengeRecommendationErrorCode.LLM_NOT_CONFIGURED, now
@@ -216,7 +224,8 @@ class ChallengeRecommendationService:
         self, user_id: UUID, prediction_id: UUID
     ) -> tuple[DiseasePrediction, list[PersonalChallenge]]:
         prediction = await self._get_completed_prediction(user_id, prediction_id)
-        # 시작하지 못했거나 중단된 추천이면 다시 시작합니다. 진행 중·완료·실패 상태면 아무것도 하지 않습니다.
+        # 시작하지 못했거나 중단된 추천, 키 미설정으로 실패했는데 지금은 키가 있는 추천이면 다시 시작합니다.
+        # 진행 중·완료 상태, 그 밖의 원인으로 실패한 상태는 그대로 둡니다 (retry API로 다시 생성).
         if await self.launcher.start(prediction.id):
             prediction = await self._get_completed_prediction(user_id, prediction_id)
         challenges = await self.repo.get_list_by_prediction(prediction.id)

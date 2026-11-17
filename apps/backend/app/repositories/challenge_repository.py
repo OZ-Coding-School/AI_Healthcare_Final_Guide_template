@@ -17,6 +17,7 @@ class ChallengeRepository:
         started_at: datetime,
         stale_before: datetime,
         retry: bool = False,
+        recover_error_code: str | None = None,
     ) -> bool:
         """
         완료된(COMPLETED) 예측의 챌린지 추천을 PROCESSING으로 선점합니다. 선점하지 못하면 False를 반환합니다.
@@ -24,7 +25,8 @@ class ChallengeRepository:
         선점 가능한 상태
             - 아직 시작하지 않음(null)
             - 생성 중(PROCESSING)이지만 stale_before보다 먼저 시작해 중단된 것으로 보이는 경우
-            - retry=True이면 실패(FAILED)
+            - retry=True이면 실패(FAILED) 전체
+            - recover_error_code를 주면 그 코드로 실패한 경우 (예: 키 미설정으로 실패한 뒤 키가 등록됨)
         조건부 UPDATE 한 번으로 처리하므로, 여러 요청이 동시에 시도해도 한 곳만 선점합니다.
         """
         claimable = Q(challenge_status__isnull=True) | Q(
@@ -32,6 +34,10 @@ class ChallengeRepository:
         )
         if retry:
             claimable |= Q(challenge_status=ChallengeRecommendationStatus.FAILED)
+        elif recover_error_code is not None:
+            claimable |= Q(
+                challenge_status=ChallengeRecommendationStatus.FAILED, challenge_error_code=recover_error_code
+            )
         updated = (
             await DiseasePrediction.filter(id=prediction_id, status=DiseasePredictionStatus.COMPLETED)
             .filter(claimable)
