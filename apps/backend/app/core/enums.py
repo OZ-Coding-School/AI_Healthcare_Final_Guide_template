@@ -77,10 +77,11 @@ class BloodSugarMeasurementType(StrEnum):
         return mapping[self]
 
 
+# 등급 경계는 고정값이 아니라 모델마다 서빙 번들의 thresholds.json(moderate, high)으로 정해집니다.
 class DiseaseRiskLevel(StrEnum):
-    LOW = "LOW"  # Low risk(30% 이하)
-    MODERATE = "MODERATE"  # Moderate risk(31%이상, 60%이하)
-    HIGH = "HIGH"  # High risk(61이상, 100%이하)
+    LOW = "LOW"  # 위험도 < moderate 경계
+    MODERATE = "MODERATE"  # moderate 경계 ≤ 위험도 < high 경계
+    HIGH = "HIGH"  # 위험도 ≥ high 경계
 
     @property
     def label(self) -> str:
@@ -88,6 +89,61 @@ class DiseaseRiskLevel(StrEnum):
             DiseaseRiskLevel.LOW: "낮음",
             DiseaseRiskLevel.MODERATE: "중간",
             DiseaseRiskLevel.HIGH: "높음",
+        }
+        return mapping[self]
+
+
+class DiseasePredictionStatus(StrEnum):
+    # 정상: PENDING → PROCESSING → COMPLETED, 비정상: PENDING → PROCESSING → FAILED
+    # (요청 발행 실패·결과 만료처럼 Worker가 가져가기 전에 끝나면 PENDING → FAILED)
+    PENDING = "PENDING"  # AI Worker가 Task를 가져가기를 기다리는 중
+    PROCESSING = "PROCESSING"  # AI Worker가 추론 중
+    COMPLETED = "COMPLETED"  # 예측 완료
+    FAILED = "FAILED"  # 예측 실패
+
+    @property
+    def label(self) -> str:
+        mapping = {
+            DiseasePredictionStatus.PENDING: "대기 중",
+            DiseasePredictionStatus.PROCESSING: "분석 중",
+            DiseasePredictionStatus.COMPLETED: "분석 완료",
+            DiseasePredictionStatus.FAILED: "분석 실패",
+        }
+        return mapping[self]
+
+    @classmethod
+    def in_progress(cls) -> tuple["DiseasePredictionStatus", ...]:
+        """아직 결과가 확정되지 않은 상태입니다."""
+        return (cls.PENDING, cls.PROCESSING)
+
+
+class PredictionModelType(StrEnum):
+    # 값은 AI Worker 결과의 model_type과 같아야 합니다.
+    DIABETES_RISK = "diabetes_risk"
+    HYPERTENSION_RISK = "hypertension_risk"
+
+    @property
+    def label(self) -> str:
+        mapping = {
+            PredictionModelType.DIABETES_RISK: "당뇨병",
+            PredictionModelType.HYPERTENSION_RISK: "고혈압",
+        }
+        return mapping[self]
+
+
+class FamilyHistoryAnswer(StrEnum):
+    YES = "YES"  # 병력 있음
+    NO = "NO"  # 병력 없음
+    UNKNOWN = "UNKNOWN"  # 모름
+    NO_SIBLINGS = "NO_SIBLINGS"  # 형제자매 없음 (형제자매 항목에만 허용)
+
+    @property
+    def label(self) -> str:
+        mapping = {
+            FamilyHistoryAnswer.YES: "있음",
+            FamilyHistoryAnswer.NO: "없음",
+            FamilyHistoryAnswer.UNKNOWN: "모름",
+            FamilyHistoryAnswer.NO_SIBLINGS: "형제자매 없음",
         }
         return mapping[self]
 

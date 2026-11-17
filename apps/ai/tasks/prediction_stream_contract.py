@@ -9,9 +9,13 @@ Backend(13번)는 이 모듈을 import하지 않으므로, Stream 이름·필드
     필드: task_id, schema_version, payload(ServiceHealthInput JSON), requested_at(ISO 8601)
 
 결과 (Worker → Backend)
-    Stream: ai:prediction:result:{task_id} (요청별 1개, 마지막 결과 1건만 보관, TTL 적용)
+    Stream: ai:prediction:result:{task_id} (요청별 1개, 마지막 항목 1건만 보관, TTL 적용)
+    처리 시작: task_id, schema_version, status=processing, started_at
     성공: task_id, schema_version, status=succeeded, result(JSON), completed_at
     실패: task_id, schema_version, status=failed, error_code, errors(JSON), completed_at
+
+처리 시작 항목은 Worker가 요청을 가져갈 때 남기며, 최종 결과(성공·실패)가 같은 키에서 이를 대체합니다.
+Backend는 이를 보고 Task 상태를 PENDING → PROCESSING으로 바꿉니다.
 
 Redis Stream 필드는 문자열만 담을 수 있어 객체는 JSON 문자열로 넣습니다.
 """
@@ -24,7 +28,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-PREDICTION_SCHEMA_VERSION = "1"
+# 2: 처리 시작(status=processing) 항목 추가
+PREDICTION_SCHEMA_VERSION = "2"
 
 # Stream·Consumer Group 이름
 PREDICTION_REQUEST_STREAM = "ai:prediction:requests"
@@ -61,6 +66,7 @@ RECONNECT_BACKOFF_MAX_SECONDS = 30.0
 
 
 class PredictionTaskStatus(StrEnum):
+    PROCESSING = "processing"  # Worker가 요청을 가져가 처리 중 (최종 결과 아님)
     SUCCEEDED = "succeeded"
     FAILED = "failed"
 
@@ -84,11 +90,23 @@ def is_valid_task_id(task_id: Any) -> bool:
     return isinstance(task_id, str) and _TASK_ID_REGEX.fullmatch(task_id) is not None
 
 
+def processing_stream_fields(task_id: str, started_at: datetime) -> dict[str, str]:
+    """처리 시작 항목입니다. 입력값과 결과는 담지 않습니다."""
+    if not is_valid_task_id(task_id):
+        raise ValueError("task_id has an invalid format")
+    return {
+        "task_id": task_id,
+        "schema_version": PREDICTION_SCHEMA_VERSION,
+        "status": str(PredictionTaskStatus.PROCESSING),
+        "started_at": started_at.isoformat(),
+    }
+
+
 class PredictionRequestMessage(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     task_id: str = Field(pattern=TASK_ID_PATTERN)
-    schema_version: Literal["1"]
+    schema_version: Literal["2"]
     payload: str = Field(min_length=2, max_length=MAX_PAYLOAD_BYTES)
     requested_at: datetime
 
@@ -113,6 +131,8 @@ class PredictionResultMessage(BaseModel):
 
     @model_validator(mode="after")
     def _check_status_fields(self) -> "PredictionResultMessage":
+        if self.status is PredictionTaskStatus.PROCESSING:
+            raise ValueError("final result cannot be processing; use processing_stream_fields")
         if self.status is PredictionTaskStatus.SUCCEEDED and (self.result is None or self.error_code is not None):
             raise ValueError("succeeded result requires result and no error_code")
         if self.status is PredictionTaskStatus.FAILED and (self.error_code is None or self.result is not None):

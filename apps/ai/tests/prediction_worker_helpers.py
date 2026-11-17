@@ -51,7 +51,7 @@ def make_request(**overrides: Any) -> dict[str, str]:
     """정상 요청 메시지를 만들고, 바꿀 필드만 덮어씁니다."""
     fields = {
         "task_id": TASK_ID,
-        "schema_version": "1",
+        "schema_version": "2",
         "payload": json.dumps(valid_payload()),
         "requested_at": FIXED_NOW.isoformat(),
     }

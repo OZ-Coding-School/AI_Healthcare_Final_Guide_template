@@ -33,8 +33,21 @@
   | urine_glucose | string | Y | 요당 (Enum: UrineGlucoseStatus - NEGATIVE, TRACE, POSITIVE_1, POSITIVE_2, POSITIVE_3, POSITIVE_4) |
   | family_history_diabetes | boolean | Y | 당뇨 가족력 여부 |
   | family_history_hypertension | boolean | Y | 고혈압 가족력 여부 |
+  | diabetes_family_history_father | string | N | 당뇨 가족력 - 아버지 (Enum: FamilyHistoryAnswer - YES, NO, UNKNOWN) |
+  | diabetes_family_history_mother | string | N | 당뇨 가족력 - 어머니 (Enum: FamilyHistoryAnswer - YES, NO, UNKNOWN) |
+  | diabetes_family_history_siblings | string | N | 당뇨 가족력 - 형제자매 (Enum: FamilyHistoryAnswer - YES, NO, UNKNOWN, NO_SIBLINGS) |
+  | hypertension_family_history_father | string | N | 고혈압 가족력 - 아버지 (Enum: FamilyHistoryAnswer - YES, NO, UNKNOWN) |
+  | hypertension_family_history_mother | string | N | 고혈압 가족력 - 어머니 (Enum: FamilyHistoryAnswer - YES, NO, UNKNOWN) |
+  | hypertension_family_history_siblings | string | N | 고혈압 가족력 - 형제자매 (Enum: FamilyHistoryAnswer - YES, NO, UNKNOWN, NO_SIBLINGS) |
   | screening_at | string (date) | Y | 검진 일자 (YYYY-MM-DD) |
   | is_fasting | boolean | Y | 공복 여부 |
+
+- **가족력 상세 입력 규칙**
+  - 질환 위험도 예측에 쓰입니다. 질환별로 아버지·어머니·형제자매 세 항목을 함께 입력하거나 모두 비워 둡니다.
+  - `NO_SIBLINGS`는 형제자매 항목에만 쓸 수 있습니다.
+  - 상세를 입력하면 `family_history_*`는 하나라도 `YES`일 때만 `true`여야 합니다.
+  - 상세를 비워 두고 `family_history_*`가 `false`이면 예측에서 세 항목 모두 `NO`로 봅니다. `true`이면 예측 요청 시 상세 입력을 요구합니다(422).
+  - 조회 응답에도 같은 6개 필드가 포함됩니다 (입력하지 않았으면 `null`).
 
 - **Example Request Body:**
   ```json

@@ -48,6 +48,9 @@ class MonthlyHealthSurveyRepository:
     async def get_by_id(self, user_id: UUID, survey_id: UUID) -> MonthlyHealthSurvey | None:
         return await MonthlyHealthSurvey.get_or_none(user_id=user_id, id=survey_id)
 
+    async def get_latest_by_user_id(self, user_id: UUID) -> MonthlyHealthSurvey | None:
+        return await MonthlyHealthSurvey.filter(user_id=user_id).order_by("-created_at").first()
+
     async def exists_this_month(self, user_id: UUID) -> bool:
         start_at, next_month_start = month_bounds(datetime.now())
         return await MonthlyHealthSurvey.filter(
