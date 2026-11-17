@@ -52,6 +52,10 @@ services:
     # APP_VERSION은 빌드된 이미지의 버전관리를 위함입니다. v1.0.0 형식으로 사용합니다.
     image: ${DOCKER_USER}/${DOCKER_REPOSITORY}:app-${APP_VERSION}
     env_file: .env
+    # Compose 네트워크 안에서는 localhost 대신 서비스 이름으로 연결합니다.
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
     command: |
       sh -c "uv run aerich upgrade && uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
@@ -84,6 +88,9 @@ services:
     # AI_WORKER_VERSION은 빌드된 이미지의 버전관리를 위함입니다. V1.0.0 형식으로 사용합니다.
     image: ${DOCKER_USER}/${DOCKER_REPOSITORY}:ai-${AI_WORKER_VERSION}
     env_file: .env
+    # 로컬 환경 파일은 호스트 실행용이므로, 컨테이너에서는 Compose 서비스 이름을 사용합니다.
+    environment:
+      REDIS_HOST: redis
     restart: always
     mem_limit: 4G
     networks:
