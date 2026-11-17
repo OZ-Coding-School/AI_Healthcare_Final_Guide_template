@@ -1,10 +1,11 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pytest
 
+import src.components.knhanes_service_input as service_input_module
 from src.components.data_preprocessor import KnhanesPreprocessor
 from src.components.knhanes_inference_errors import InferenceInputError
 from src.components.knhanes_input_adapter import drinks_per_session_code, to_knhanes_raw_frame
@@ -103,6 +104,24 @@ class TestServiceInputValidation:
     def test_non_mapping_input_is_rejected(self):
         with pytest.raises(InferenceInputError):
             parse_service_input(["not", "a", "mapping"])  # type: ignore[arg-type]
+
+    def test_screening_date_uses_configured_timezone_date(self, monkeypatch):
+        class FixedDate(date):
+            @classmethod
+            def today(cls):
+                return cls(2026, 11, 16)
+
+        class FixedDateTime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return cls(2026, 11, 17, 0, 30, tzinfo=tz)
+
+        monkeypatch.setattr(service_input_module, "date", FixedDate)
+        monkeypatch.setattr(service_input_module, "datetime", FixedDateTime)
+
+        service_input = parse_service_input(valid_payload(screening_date="2026-11-17"))
+
+        assert service_input.screening_date == date(2026, 11, 17)
 
     @pytest.mark.parametrize(
         ("birth", "on", "expected"),
