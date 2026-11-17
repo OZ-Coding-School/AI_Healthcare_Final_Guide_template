@@ -189,6 +189,42 @@ class TestChallengeRecommendationAPI(TestCase):
         assert body["challenges"] == []
         assert self.llm.calls == []
 
+    async def test_registering_api_key_recovers_not_configured_recommendation(self) -> None:
+        """키 없이 실패한 추천은 키를 등록한 뒤 조회하면 retry 없이 다시 생성됩니다."""
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            with patch.object(settings, "ANTHROPIC_API_KEY", SecretStr("")):
+                headers, prediction_id = await self.completed_prediction(client)
+                _, before = await self.get_recommendation(client, headers, prediction_id)
+            _, after = await self.get_recommendation(client, headers, prediction_id)
+
+        assert before["status"] == "FAILED"
+        assert before["error_code"] == "LLM_NOT_CONFIGURED"
+        assert after["status"] == "COMPLETED"
+        assert len(after["challenges"]) == 3
+        assert len(self.llm.calls) == 1
+
+    async def test_repeated_reads_without_api_key_do_not_restart(self) -> None:
+        with patch.object(settings, "ANTHROPIC_API_KEY", SecretStr("")):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                headers, prediction_id = await self.completed_prediction(client)
+                first = (await DiseasePrediction.get(id=prediction_id)).challenge_completed_at
+                await self.get_recommendation(client, headers, prediction_id)
+                _, body = await self.get_recommendation(client, headers, prediction_id)
+
+        assert body["error_code"] == "LLM_NOT_CONFIGURED"
+        assert (await DiseasePrediction.get(id=prediction_id)).challenge_completed_at == first
+
+    async def test_other_failures_are_not_restarted_by_read(self) -> None:
+        self.llm.responses = ["JSON이 아닌 응답"]
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            headers, prediction_id = await self.completed_prediction(client)
+            self.llm.responses = [challenges_json([challenge_item()])]
+            _, body = await self.get_recommendation(client, headers, prediction_id)
+
+        assert body["status"] == "FAILED"
+        assert body["error_code"] == "LLM_INVALID_RESPONSE"
+        assert len(self.llm.calls) == settings.LLM_MAX_ATTEMPTS
+
     async def test_invalid_response_is_retried_with_reasons(self) -> None:
         self.llm.responses = [challenges_json([challenge_item(total_rounds=100)]), challenges_json([challenge_item()])]
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

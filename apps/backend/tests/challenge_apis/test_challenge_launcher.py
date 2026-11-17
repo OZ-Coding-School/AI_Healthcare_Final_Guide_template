@@ -39,7 +39,12 @@ class FakeRepository:
         self.error_code: str | None = None
 
     async def claim_recommendation(
-        self, prediction_id: UUID, started_at: datetime, stale_before: datetime, retry: bool = False
+        self,
+        prediction_id: UUID,
+        started_at: datetime,
+        stale_before: datetime,
+        retry: bool = False,
+        recover_error_code: str | None = None,
     ) -> bool:
         if self.status is not None:
             return False
