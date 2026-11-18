@@ -1,12 +1,10 @@
 import asyncio
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import Mock, patch
 
 import fakeredis
 import pytest
-import pytest_asyncio
-from _pytest.fixtures import FixtureRequest
 from pydantic import SecretStr
 from tortoise import generate_config
 from tortoise.contrib.test import finalizer, initializer
@@ -19,6 +17,7 @@ from main import app
 TEST_BASE_URL = "http://test"
 TEST_DB_LABEL = "models"
 TEST_DB_TZ = "Asia/Seoul"
+TEST_EVENT_LOOP: asyncio.AbstractEventLoop | None = None
 
 
 def get_test_db_config() -> dict[str, Any]:
@@ -34,19 +33,18 @@ def get_test_db_config() -> dict[str, Any]:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def initialize(request: FixtureRequest) -> Generator[None, None]:
+def initialize() -> Generator[None, None, None]:
+    global TEST_EVENT_LOOP
     loop = asyncio.new_event_loop()
+    TEST_EVENT_LOOP = loop
     asyncio.set_event_loop(loop)
     with patch("tortoise.contrib.test.getDBConfig", Mock(return_value=get_test_db_config())):
-        initializer(modules=TORTOISE_APP_MODELS)
+        initializer(modules=TORTOISE_APP_MODELS, loop=loop)
     yield
     finalizer()
     loop.close()
-
-
-@pytest_asyncio.fixture(autouse=True, scope="session")  # type: ignore[type-var]
-def event_loop() -> None:
-    pass
+    asyncio.set_event_loop(None)
+    TEST_EVENT_LOOP = None
 
 
 @pytest.fixture(autouse=True)
@@ -56,7 +54,12 @@ def disable_llm_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(autouse=True)
-async def fake_redis() -> AsyncGenerator[fakeredis.FakeAsyncRedis, None]:
+def fake_redis() -> Generator[fakeredis.FakeAsyncRedis, None, None]:
+    if TEST_EVENT_LOOP is None or TEST_EVENT_LOOP.is_closed():
+        raise RuntimeError("The test database event loop has not been initialized")
+    # Tortoise's TestCase uses asyncio.get_event_loop() to select its loop.
+    # Restore the same loop that owns the database pool before each test.
+    asyncio.set_event_loop(TEST_EVENT_LOOP)
     redis = fakeredis.FakeAsyncRedis(decode_responses=True)
     # 팩토리 함수를 사용하여 항상 같은 FakeAsyncRedis 인스턴스를 반환하도록 오버라이드
     app.dependency_overrides[get_redis] = lambda: redis
@@ -65,5 +68,4 @@ async def fake_redis() -> AsyncGenerator[fakeredis.FakeAsyncRedis, None]:
     with patch("app.core.utils.redis.get_redis", return_value=redis):
         yield redis
 
-    await redis.aclose()
     app.dependency_overrides.clear()
