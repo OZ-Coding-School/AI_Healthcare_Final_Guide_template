@@ -1,189 +1,33 @@
-import { useState } from "react";
-import {
-  Target,
-  Flame,
-  Activity,
-  Wind,
-  Droplets,
-  Shield,
-  CheckCircle,
-  Plus,
-  Calendar,
-} from "lucide-react";
-
-const ACTIVE = [
-  {
-    icon: Flame,
-    title: "저탄수화물 식단 21일",
-    desc: "혈당 스파이크를 줄이는 식단으로 인슐린 저항성 개선",
-    progress: 71,
-    day: 15,
-    total: 21,
-    color: "#F59E0B",
-    basis: "공복혈당 고위험 · 당뇨 위험도 68%",
-  },
-  {
-    icon: Activity,
-    title: "매일 30분 유산소",
-    desc: "빠르게 걷기·조깅으로 심혈관 건강과 혈압 관리",
-    progress: 48,
-    day: 7,
-    total: 21,
-    color: "#10B981",
-    basis: "신체활동 부족 · 복부 비만 고위험",
-  },
-  {
-    icon: Wind,
-    title: "스트레스 명상 10분",
-    desc: "코르티솔 수치를 낮춰 혈당 조절과 혈압 안정",
-    progress: 90,
-    day: 21,
-    total: 21,
-    color: "#8B5CF6",
-    basis: "월별 스트레스 지수 상승",
-  },
-];
-
-const RECOMMENDED = [
-  {
-    icon: Droplets,
-    title: "하루 2L 수분 섭취",
-    desc: "신장 기능 지원 및 혈액 순환 개선",
-    color: "#06B6D4",
-    basis: "검진 결과 신장 기능 주의",
-  },
-  {
-    icon: Shield,
-    title: "나트륨 2000mg 이하",
-    desc: "저염식으로 수축기 혈압 5~10mmHg 감소",
-    color: "#EF4444",
-    basis: "고혈압 위험 요인",
-  },
-];
-
-function ActiveCard({
-  icon: Icon,
-  title,
-  desc,
-  progress,
-  day,
-  total,
-  color,
-  basis,
-}: (typeof ACTIVE)[0]) {
-  const [todayDone, setTodayDone] = useState(false);
-
-  return (
-    <div className="bg-white border border-border rounded-xl p-5 flex flex-col gap-4">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: `${color}15` }}
-          >
-            <Icon size={20} style={{ color }} />
-          </div>
-          <div>
-            <div className="font-semibold text-foreground text-sm">{title}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">{desc}</div>
-          </div>
-        </div>
-        <span
-          className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
-          style={{ fontFamily: "JetBrains Mono", backgroundColor: `${color}12`, color }}
-        >
-          D+{day}
-        </span>
-      </div>
-
-      <div
-        className="text-[11px] px-2.5 py-1.5 rounded-lg"
-        style={{
-          backgroundColor: "rgba(13,59,110,0.05)",
-          color: "#0D3B6E",
-          fontFamily: "JetBrains Mono",
-        }}
-      >
-        추천 근거: {basis}
-      </div>
-
-      <div>
-        <div className="flex justify-between text-xs mb-1.5">
-          <span className="text-muted-foreground" style={{ fontFamily: "JetBrains Mono" }}>
-            진행률 ({day}/{total}일)
-          </span>
-          <span className="font-semibold" style={{ fontFamily: "JetBrains Mono", color }}>
-            {progress}%
-          </span>
-        </div>
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full"
-            style={{ width: `${progress}%`, backgroundColor: color }}
-          />
-        </div>
-      </div>
-
-      <button
-        onClick={() => setTodayDone(!todayDone)}
-        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-medium border transition-all duration-200"
-        style={
-          todayDone
-            ? {
-                backgroundColor: "rgba(16,185,129,0.1)",
-                borderColor: "rgba(16,185,129,0.3)",
-                color: "#10B981",
-              }
-            : {
-                backgroundColor: "transparent",
-                borderColor: "rgba(13,59,110,0.2)",
-                color: "#0D3B6E",
-              }
-        }
-      >
-        <CheckCircle size={15} />
-        {todayDone ? "오늘 완료! 🎉" : "오늘 수행 완료"}
-      </button>
-    </div>
-  );
-}
-
-function RecommendCard({ icon: Icon, title, desc, color, basis }: (typeof RECOMMENDED)[0]) {
-  return (
-    <div className="bg-white border border-border rounded-xl p-5 flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: `${color}15` }}
-        >
-          <Icon size={20} style={{ color }} />
-        </div>
-        <div>
-          <div className="font-semibold text-foreground text-sm">{title}</div>
-          <div className="text-xs text-muted-foreground">{desc}</div>
-        </div>
-      </div>
-      <div
-        className="text-[11px] px-2.5 py-1.5 rounded-lg"
-        style={{
-          backgroundColor: "rgba(13,59,110,0.05)",
-          color: "#0D3B6E",
-          fontFamily: "JetBrains Mono",
-        }}
-      >
-        추천 근거: {basis}
-      </div>
-      <button
-        className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
-        style={{ backgroundColor: color }}
-      >
-        <Plus size={14} /> 챌린지 시작하기
-      </button>
-    </div>
-  );
-}
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
+import { Target, Calendar, Plus, AlertTriangle } from "lucide-react";
+import { getChallenges, isExpired, type PersonalChallenge } from "../shared/api/challengeApi";
+import ChallengeCard from "../shared/components/ChallengeCard";
 
 export default function Challenge() {
+  const navigate = useNavigate();
+  const [challenges, setChallenges] = useState<PersonalChallenge[] | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    getChallenges()
+      .then((list) => {
+        if (active) setChallenges(list);
+      })
+      .catch((err) => {
+        if (active) setError(err instanceof Error ? err.message : "챌린지를 불러오지 못했습니다.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const list = challenges ?? [];
+  const active = list.filter((c) => c.status === "IN_PROGRESS");
+  const recommended = list.filter((c) => c.status === "PENDING" && !isExpired(c));
+  const completedCount = list.filter((c) => c.status === "COMPLETED").length;
+
   return (
     <div className="p-6 lg:p-8 max-w-4xl">
       <div className="mb-8">
@@ -199,16 +43,22 @@ export default function Challenge() {
         </p>
       </div>
 
+      {error && (
+        <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <AlertTriangle size={15} /> {error}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
-          { label: "진행 중인 챌린지", value: "3", color: "#0D3B6E" },
-          { label: "이번 주 완료일", value: "5일", color: "#10B981" },
-          { label: "누적 완료 챌린지", value: "12개", color: "#8B5CF6" },
+          { label: "진행 중인 챌린지", value: `${active.length}개`, color: "#0D3B6E" },
+          { label: "수락 대기 추천", value: `${recommended.length}개`, color: "#10B981" },
+          { label: "완료한 챌린지", value: `${completedCount}개`, color: "#8B5CF6" },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white border border-border rounded-xl p-4 text-center">
             <div className="text-2xl font-bold" style={{ fontFamily: "JetBrains Mono", color }}>
-              {value}
+              {challenges === null ? "-" : value}
             </div>
             <div className="text-xs text-muted-foreground mt-1">{label}</div>
           </div>
@@ -220,11 +70,15 @@ export default function Challenge() {
         <h2 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
           <Target size={16} className="text-primary" /> 진행 중인 챌린지
         </h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {ACTIVE.map((c) => (
-            <ActiveCard key={c.title} {...c} />
-          ))}
-        </div>
+        {active.length > 0 ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {active.map((c) => (
+              <ChallengeCard key={c.id} challenge={c} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">진행 중인 챌린지가 없습니다.</p>
+        )}
       </div>
 
       {/* Recommended */}
@@ -233,11 +87,42 @@ export default function Challenge() {
           <Calendar size={16} style={{ color: "#10B981" }} /> AI 추천 챌린지
         </h2>
         <p className="text-xs text-muted-foreground mb-4">
-          최근 AI 분석 결과를 기반으로 추천한 챌린지입니다.
+          AI 분석 결과를 기반으로 추천한 챌린지입니다. 수락 기한이 지나면 목록에서 사라집니다.
         </p>
+        {challenges === null && !error && (
+          <p className="text-sm text-muted-foreground">챌린지를 불러오는 중...</p>
+        )}
+        {challenges !== null && recommended.length === 0 && (
+          <div className="bg-white border border-border rounded-xl p-8 flex flex-col items-center gap-3 text-center">
+            <div className="text-sm text-foreground">수락을 기다리는 추천 챌린지가 없습니다.</div>
+            <p className="text-xs text-muted-foreground">
+              AI 위험도 분석을 완료하면 맞춤 챌린지가 자동으로 추천됩니다.
+            </p>
+            <button
+              onClick={() => navigate("/app/ai/analysis")}
+              className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
+              style={{ backgroundColor: "#10B981" }}
+            >
+              AI 위험도 분석하기
+            </button>
+          </div>
+        )}
         <div className="grid sm:grid-cols-2 gap-4">
-          {RECOMMENDED.map((c) => (
-            <RecommendCard key={c.title} {...c} />
+          {recommended.map((c) => (
+            <ChallengeCard
+              key={c.id}
+              challenge={c}
+              action={
+                <button
+                  disabled
+                  title="챌린지 수락 API가 준비되면 사용할 수 있습니다."
+                  className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-sm font-medium text-white opacity-50 cursor-not-allowed"
+                  style={{ backgroundColor: "#10B981" }}
+                >
+                  <Plus size={14} /> 챌린지 시작하기 (준비 중)
+                </button>
+              }
+            />
           ))}
         </div>
       </div>
