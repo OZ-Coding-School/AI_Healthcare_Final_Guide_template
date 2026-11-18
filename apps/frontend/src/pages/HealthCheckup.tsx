@@ -28,6 +28,12 @@ import {
   UrineGlucoseStatus,
   CreateAnnualHealthScreeningBody,
   urineStatusToKorean,
+  FAMILY_HISTORY_ANSWER_LABELS,
+  FAMILY_HISTORY_RELATIONS,
+  familyHistoryDetailKey,
+  type FamilyHistoryAnswer,
+  type FamilyHistoryDisease,
+  type FamilyHistoryRelation,
 } from "../shared/api/annualHealthScreeningApi";
 import { formatDateTime } from "../shared/utils/format";
 
@@ -113,13 +119,44 @@ function StatusBadge({ status }: { status: Status }) {
 
 /* ── Urine options ── */
 const URINE_OPTIONS: { value: UrineProteinStatus | UrineGlucoseStatus; label: string }[] = [
-  { value: "NEGATIVE", label: "음성 (-)" },
-  { value: "TRACE", label: "미량 (±)" },
-  { value: "POSITIVE_1", label: "양성 1+ (+)" },
-  { value: "POSITIVE_2", label: "양성 2+ (++)" },
-  { value: "POSITIVE_3", label: "양성 3+ (+++)" },
-  { value: "POSITIVE_4", label: "양성 4+ (++++)" },
+  { value: "-", label: "음성 (-)" },
+  { value: "±", label: "미량 (±)" },
+  { value: "1+", label: "양성 1+ (+)" },
+  { value: "2+", label: "양성 2+ (++)" },
+  { value: "3+", label: "양성 3+ (+++)" },
+  { value: "4+", label: "양성 4+ (++++)" },
 ];
+
+/* ── Family history ── */
+type FamilyHistoryAnswers = Record<FamilyHistoryRelation, FamilyHistoryAnswer | "">;
+
+const FAMILY_HISTORY_DISEASES: {
+  key: FamilyHistoryDisease;
+  label: string;
+  flag: "family_history_diabetes" | "family_history_hypertension";
+}[] = [
+  { key: "diabetes", label: "당뇨", flag: "family_history_diabetes" },
+  { key: "hypertension", label: "고혈압", flag: "family_history_hypertension" },
+];
+
+const EMPTY_FAMILY_ANSWERS: FamilyHistoryAnswers = { father: "", mother: "", siblings: "" };
+
+/** 관계별 선택지. 형제자매 없음은 형제자매에만 허용됩니다. */
+function familyAnswerOptions(relation: FamilyHistoryRelation): FamilyHistoryAnswer[] {
+  return relation === "siblings"
+    ? ["YES", "NO", "UNKNOWN", "NO_SIBLINGS"]
+    : ["YES", "NO", "UNKNOWN"];
+}
+
+function validateFamilyAnswers(answers: FamilyHistoryAnswers): string | null {
+  if (FAMILY_HISTORY_RELATIONS.some(({ key }) => !answers[key])) {
+    return "아버지·어머니·형제자매를 모두 선택해주세요.";
+  }
+  if (!FAMILY_HISTORY_RELATIONS.some(({ key }) => answers[key] === "YES")) {
+    return "가족력이 있으면 한 명 이상 '있음'을 선택해주세요.";
+  }
+  return null;
+}
 
 /* ── Input Field ── */
 function Field({
@@ -176,16 +213,26 @@ function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
     ast: 0,
     alt: 0,
     creatinine: 0,
-    urine_protein: "NEGATIVE",
-    urine_glucose: "NEGATIVE",
+    urine_protein: "-",
+    urine_glucose: "-",
     family_history_diabetes: false,
     family_history_hypertension: false,
     screening_at: "",
     is_fasting: true,
   });
+  const [familyAnswers, setFamilyAnswers] = useState<
+    Record<FamilyHistoryDisease, FamilyHistoryAnswers>
+  >({ diabetes: EMPTY_FAMILY_ANSWERS, hypertension: EMPTY_FAMILY_ANSWERS });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState("");
+
+  const setFamilyAnswer =
+    (disease: FamilyHistoryDisease, relation: FamilyHistoryRelation) => (value: string) =>
+      setFamilyAnswers((prev) => ({
+        ...prev,
+        [disease]: { ...prev[disease], [relation]: value as FamilyHistoryAnswer | "" },
+      }));
 
   const set = (k: keyof CreateAnnualHealthScreeningBody) => (v: string | number | boolean) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -230,6 +277,12 @@ function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
     if (!form.creatinine || form.creatinine <= 0) e.creatinine = "크레아티닌을 입력해주세요.";
     if (!form.screening_at) e.screening_at = "검진 일자를 선택해주세요.";
 
+    for (const { key, flag } of FAMILY_HISTORY_DISEASES) {
+      if (!form[flag]) continue;
+      const message = validateFamilyAnswers(familyAnswers[key]);
+      if (message) e[`${key}_family_history`] = message;
+    }
+
     return e;
   };
 
@@ -242,7 +295,15 @@ function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
     setSaving(true);
     setApiError("");
     try {
-      await createAnnualHealthScreening(form);
+      // 가족력이 있는 질환만 상세를 보냅니다. 없으면 백엔드가 모두 '없음'으로 처리합니다.
+      const payload: CreateAnnualHealthScreeningBody = { ...form };
+      for (const { key, flag } of FAMILY_HISTORY_DISEASES) {
+        if (!form[flag]) continue;
+        for (const { key: relation } of FAMILY_HISTORY_RELATIONS) {
+          payload[familyHistoryDetailKey(key, relation)] = familyAnswers[key][relation] || null;
+        }
+      }
+      await createAnnualHealthScreening(payload);
       onSuccess();
     } catch (err: unknown) {
       setApiError(err instanceof Error ? err.message : "검진 기록 저장 중 오류가 발생했습니다.");
@@ -637,24 +698,51 @@ function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
           <h4 className="font-semibold text-foreground text-sm">가족력</h4>
         </div>
         <div className="flex flex-col gap-3">
-          <label className="flex items-center gap-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/30 transition-colors">
-            <input
-              type="checkbox"
-              checked={form.family_history_diabetes}
-              onChange={(e) => set("family_history_diabetes")(e.target.checked)}
-              className="w-4 h-4 rounded border-border"
-            />
-            <span className="text-sm text-foreground">당뇨 가족력 있음</span>
-          </label>
-          <label className="flex items-center gap-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/30 transition-colors">
-            <input
-              type="checkbox"
-              checked={form.family_history_hypertension}
-              onChange={(e) => set("family_history_hypertension")(e.target.checked)}
-              className="w-4 h-4 rounded border-border"
-            />
-            <span className="text-sm text-foreground">고혈압 가족력 있음</span>
-          </label>
+          {FAMILY_HISTORY_DISEASES.map(({ key, label, flag }) => (
+            <div key={key} className="rounded-lg border border-border">
+              <label className="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/30 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={form[flag]}
+                  onChange={(e) => set(flag)(e.target.checked)}
+                  className="w-4 h-4 rounded border-border"
+                />
+                <span className="text-sm text-foreground">{label} 가족력 있음</span>
+              </label>
+              {form[flag] && (
+                <div className="px-3 pb-3">
+                  <p className="text-xs text-muted-foreground mb-2">
+                    위험도 분석에 필요합니다. 가족별로 해당 질환 병력을 선택해주세요.
+                  </p>
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    {FAMILY_HISTORY_RELATIONS.map(({ key: relation, label: relationLabel }) => (
+                      <Field key={relation} label={relationLabel} required>
+                        <select
+                          value={familyAnswers[key][relation]}
+                          onChange={(e) => setFamilyAnswer(key, relation)(e.target.value)}
+                          className={INPUT}
+                          style={{ borderColor: "rgba(13,59,110,0.2)" }}
+                        >
+                          <option value="">선택</option>
+                          {familyAnswerOptions(relation).map((answer) => (
+                            <option key={answer} value={answer}>
+                              {FAMILY_HISTORY_ANSWER_LABELS[answer]}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                    ))}
+                  </div>
+                  {errors[`${key}_family_history`] && (
+                    <span className="text-xs flex items-center gap-1 text-red-500 mt-2">
+                      <AlertCircle size={11} />
+                      {errors[`${key}_family_history`]}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -690,6 +778,22 @@ function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
 }
 
 /* ── Detail Modal ── */
+/** 상세가 저장된 기록만 "아버지 있음 · 어머니 없음 · 형제자매 모름" 형태로 표시합니다. */
+function FamilyHistoryDetailText({
+  screening,
+  disease,
+}: {
+  screening: AnnualHealthScreeningDetail;
+  disease: FamilyHistoryDisease;
+}) {
+  const parts = FAMILY_HISTORY_RELATIONS.flatMap(({ key, label }) => {
+    const answer = screening[familyHistoryDetailKey(disease, key)];
+    return answer ? [`${label} ${FAMILY_HISTORY_ANSWER_LABELS[answer] ?? answer}`] : [];
+  });
+  if (parts.length === 0) return null;
+  return <div className="text-xs text-muted-foreground mt-1">{parts.join(" · ")}</div>;
+}
+
 const Section = ({
   icon: Icon,
   title,
@@ -858,6 +962,7 @@ function DetailModal({
                 <div className="text-sm text-foreground">
                   {screening.family_history_diabetes ? "✓ 당뇨 가족력 있음" : "당뇨 가족력 없음"}
                 </div>
+                <FamilyHistoryDetailText screening={screening} disease="diabetes" />
               </div>
               <div
                 className={cn(
@@ -872,6 +977,7 @@ function DetailModal({
                     ? "✓ 고혈압 가족력 있음"
                     : "고혈압 가족력 없음"}
                 </div>
+                <FamilyHistoryDetailText screening={screening} disease="hypertension" />
               </div>
             </div>
           </div>

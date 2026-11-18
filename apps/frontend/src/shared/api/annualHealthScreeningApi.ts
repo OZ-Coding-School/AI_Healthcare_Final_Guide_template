@@ -2,10 +2,48 @@ import { request } from "./client";
 
 const BASE = "/api/v1/annual-health-screenings";
 
-export type UrineProteinStatus =
-  "NEGATIVE" | "TRACE" | "POSITIVE_1" | "POSITIVE_2" | "POSITIVE_3" | "POSITIVE_4";
-export type UrineGlucoseStatus =
-  "NEGATIVE" | "TRACE" | "POSITIVE_1" | "POSITIVE_2" | "POSITIVE_3" | "POSITIVE_4";
+/** 백엔드 Enum의 값(-, ±, 1+~4+)을 그대로 보냅니다. Enum 이름(NEGATIVE 등)은 거부됩니다. */
+export type UrineProteinStatus = "-" | "±" | "1+" | "2+" | "3+" | "4+";
+export type UrineGlucoseStatus = "-" | "±" | "1+" | "2+" | "3+" | "4+";
+
+/** 가족력 상세 답변. NO_SIBLINGS는 형제자매 항목에만 허용됩니다. */
+export type FamilyHistoryAnswer = "YES" | "NO" | "UNKNOWN" | "NO_SIBLINGS";
+export type FamilyHistoryRelation = "father" | "mother" | "siblings";
+export type FamilyHistoryDisease = "diabetes" | "hypertension";
+
+export const FAMILY_HISTORY_ANSWER_LABELS: Record<FamilyHistoryAnswer, string> = {
+  YES: "있음",
+  NO: "없음",
+  UNKNOWN: "모름",
+  NO_SIBLINGS: "형제자매 없음",
+};
+
+export const FAMILY_HISTORY_RELATIONS: { key: FamilyHistoryRelation; label: string }[] = [
+  { key: "father", label: "아버지" },
+  { key: "mother", label: "어머니" },
+  { key: "siblings", label: "형제자매" },
+];
+
+/**
+ * 가족력 상세(질환별 아버지·어머니·형제자매).
+ * 병력 여부가 true이면 세 항목을 모두 보내야 하고, 하나 이상 YES여야 합니다.
+ * 병력 여부가 false이면 보내지 않습니다(백엔드가 모두 NO로 처리).
+ */
+export interface FamilyHistoryDetail {
+  diabetes_family_history_father?: FamilyHistoryAnswer | null;
+  diabetes_family_history_mother?: FamilyHistoryAnswer | null;
+  diabetes_family_history_siblings?: FamilyHistoryAnswer | null;
+  hypertension_family_history_father?: FamilyHistoryAnswer | null;
+  hypertension_family_history_mother?: FamilyHistoryAnswer | null;
+  hypertension_family_history_siblings?: FamilyHistoryAnswer | null;
+}
+
+export function familyHistoryDetailKey(
+  disease: FamilyHistoryDisease,
+  relation: FamilyHistoryRelation
+): keyof FamilyHistoryDetail {
+  return `${disease}_family_history_${relation}`;
+}
 
 export interface AnnualHealthScreening {
   id: string;
@@ -14,7 +52,7 @@ export interface AnnualHealthScreening {
   created_at: string;
 }
 
-export interface AnnualHealthScreeningDetail extends AnnualHealthScreening {
+export interface AnnualHealthScreeningDetail extends AnnualHealthScreening, FamilyHistoryDetail {
   height: number;
   weight: number;
   bmi: number;
@@ -37,7 +75,7 @@ export interface AnnualHealthScreeningDetail extends AnnualHealthScreening {
   is_fasting: boolean;
 }
 
-export interface CreateAnnualHealthScreeningBody {
+export interface CreateAnnualHealthScreeningBody extends FamilyHistoryDetail {
   height: number;
   weight: number;
   bmi: number;
@@ -63,17 +101,17 @@ export interface CreateAnnualHealthScreeningBody {
 
 export function urineStatusToKorean(status: UrineProteinStatus | UrineGlucoseStatus): string {
   switch (status) {
-    case "NEGATIVE":
+    case "-":
       return "음성 (-)";
-    case "TRACE":
+    case "±":
       return "미량 (±)";
-    case "POSITIVE_1":
+    case "1+":
       return "양성 1+ (+)";
-    case "POSITIVE_2":
+    case "2+":
       return "양성 2+ (++)";
-    case "POSITIVE_3":
+    case "3+":
       return "양성 3+ (+++)";
-    case "POSITIVE_4":
+    case "4+":
       return "양성 4+ (++++)";
     default:
       return status;
