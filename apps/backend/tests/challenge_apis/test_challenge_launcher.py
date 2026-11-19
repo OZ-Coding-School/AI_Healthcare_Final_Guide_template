@@ -14,6 +14,7 @@ from pydantic import SecretStr
 from app.core import settings
 from app.core.enums import ChallengeRecommendationStatus, PredictionModelType
 from app.core.llm import LLMResponse
+from app.repositories.challenge_cache_repository import ChallengeCacheRepository
 from app.repositories.challenge_repository import ChallengeRepository
 from app.services.challenge_recommendations import ChallengeRecommendationLauncher
 from tests.challenge_apis.helpers import factor, result, valid_response_text
@@ -73,6 +74,27 @@ class FakeRepository:
         return True
 
 
+class FakeCache:
+    def __init__(self) -> None:
+        self.invalidated: list[UUID] = []
+        self.deleted: list[tuple[UUID, UUID]] = []
+
+    async def invalidate_list(self, user_id: UUID) -> None:
+        self.invalidated.append(user_id)
+
+    async def delete_recommendation(self, user_id: UUID, prediction_id: UUID) -> None:
+        self.deleted.append((user_id, prediction_id))
+
+
+def make_launcher(repo: FakeRepository, llm: Any, cache: FakeCache | None = None) -> ChallengeRecommendationLauncher:
+    fake_cache = cache or FakeCache()
+    return ChallengeRecommendationLauncher(
+        repository_factory=lambda: cast(ChallengeRepository, repo),
+        llm_client_factory=lambda: llm,
+        cache_factory=lambda: cast(ChallengeCacheRepository, fake_cache),
+    )
+
+
 class SlowLLMClient:
     """release 이벤트가 설정될 때까지 응답을 미룹니다."""
 
@@ -90,9 +112,8 @@ async def test_start_returns_before_llm_responds_and_saves_in_background() -> No
     prediction = FakePrediction()
     repo = FakeRepository(prediction)
     llm = SlowLLMClient()
-    launcher = ChallengeRecommendationLauncher(
-        repository_factory=lambda: cast(ChallengeRepository, repo), llm_client_factory=lambda: llm
-    )
+    cache = FakeCache()
+    launcher = make_launcher(repo, llm, cache)
 
     with patch.object(settings, "ANTHROPIC_API_KEY", SecretStr("test-key")):
         started = await launcher.start(prediction.id)
@@ -110,15 +131,16 @@ async def test_start_returns_before_llm_responds_and_saves_in_background() -> No
         {"model_type": "diabetes_risk", "feature": "허리둘레", "display_name": "허리둘레"}
     ]
     assert {item["model_type"] for item in repo.saved[1]["basis"]} == {"diabetes_risk", "hypertension_risk"}
+    # 저장 후 사용자의 목록 캐시를 무효화합니다.
+    assert cache.invalidated == [prediction.user_id]
+    assert cache.deleted == [(prediction.user_id, prediction.id)]
 
 
 async def test_start_claims_only_once() -> None:
     prediction = FakePrediction()
     repo = FakeRepository(prediction)
     llm = SlowLLMClient()
-    launcher = ChallengeRecommendationLauncher(
-        repository_factory=lambda: cast(ChallengeRepository, repo), llm_client_factory=lambda: llm
-    )
+    launcher = make_launcher(repo, llm)
 
     with patch.object(settings, "ANTHROPIC_API_KEY", SecretStr("test-key")):
         first = await launcher.start(prediction.id)
@@ -132,9 +154,8 @@ async def test_start_claims_only_once() -> None:
 async def test_start_without_api_key_fails_immediately() -> None:
     prediction = FakePrediction()
     repo = FakeRepository(prediction)
-    launcher = ChallengeRecommendationLauncher(
-        repository_factory=lambda: cast(ChallengeRepository, repo), llm_client_factory=SlowLLMClient
-    )
+    cache = FakeCache()
+    launcher = make_launcher(repo, SlowLLMClient(), cache)
 
     with patch.object(settings, "ANTHROPIC_API_KEY", SecretStr("")):
         assert await launcher.start(prediction.id) is True
@@ -142,3 +163,4 @@ async def test_start_without_api_key_fails_immediately() -> None:
     assert repo.status is ChallengeRecommendationStatus.FAILED
     assert repo.error_code == "LLM_NOT_CONFIGURED"
     assert not launcher._tasks
+    assert cache.invalidated == []

@@ -27,8 +27,7 @@ async def get_challenge_recommendation(
     request_user: User = Depends(get_request_user),
     service: ChallengeRecommendationService = Depends(get_challenge_recommendation_service),
 ) -> ChallengeRecommendationResponse:
-    prediction, challenges = await service.get_recommendation(request_user.id, prediction_id)
-    return ChallengeRecommendationResponse.from_model(prediction, challenges)
+    return await service.get_recommendation(request_user.id, prediction_id)
 
 
 @challenge_router.post(
@@ -42,8 +41,7 @@ async def retry_challenge_recommendation(
     request_user: User = Depends(get_request_user),
     service: ChallengeRecommendationService = Depends(get_challenge_recommendation_service),
 ) -> ChallengeRecommendationResponse:
-    prediction, challenges = await service.retry(request_user.id, prediction_id)
-    return ChallengeRecommendationResponse.from_model(prediction, challenges)
+    return await service.retry(request_user.id, prediction_id)
 
 
 @challenge_router.get(
@@ -57,5 +55,4 @@ async def get_challenge_list(
     request_user: User = Depends(get_request_user),
     service: ChallengeRecommendationService = Depends(get_challenge_recommendation_service),
 ) -> list[PersonalChallengeResponse]:
-    challenges = await service.get_challenge_list(request_user.id, challenge_status)
-    return [PersonalChallengeResponse.from_model(challenge) for challenge in challenges]
+    return await service.get_challenge_list(request_user.id, challenge_status)

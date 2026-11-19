@@ -6,6 +6,7 @@ from uuid import uuid4
 import fakeredis
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
+from redis.exceptions import RedisError
 from starlette import status
 from tortoise.contrib.test import TestCase
 
@@ -342,6 +343,77 @@ class TestChallengeRecommendationAPI(TestCase):
 
         assert body["status"] == "PROCESSING"
         assert len(self.llm.calls) == 1
+
+    # ---------- Redis 캐시 ----------
+
+    async def test_completed_recommendation_is_served_from_cache(self) -> None:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            headers, prediction_id = await self.completed_prediction(client)
+            user_id = (await User.get(email=self.signup_data["email"])).id
+            _, first = await self.get_recommendation(client, headers, prediction_id)
+            key = f"challenge:recommendation:{user_id}:{prediction_id}"
+            ttl = await self.redis.ttl(key)
+            # 캐시가 쓰이는지 확인하려고 DB만 바꿉니다. 캐시된 응답은 그대로여야 합니다.
+            await PersonalChallenge.filter(prediction_id=prediction_id).update(title="DB에서 바뀐 제목")
+            _, second = await self.get_recommendation(client, headers, prediction_id)
+
+        base = settings.CHALLENGE_RECOMMENDATION_CACHE_TTL_SECONDS
+        assert base - 5 <= ttl <= base * (1 + settings.CACHE_TTL_JITTER_RATIO)
+        assert second == first
+        assert second["challenges"][0]["title"] == "매일 30분 빠르게 걷기"
+
+    async def test_failed_recommendation_is_not_cached(self) -> None:
+        self.llm.responses = ["JSON이 아닌 응답"]
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            headers, prediction_id = await self.completed_prediction(client)
+            user_id = (await User.get(email=self.signup_data["email"])).id
+            _, body = await self.get_recommendation(client, headers, prediction_id)
+
+        assert body["status"] == "FAILED"
+        assert await self.redis.exists(f"challenge:recommendation:{user_id}:{prediction_id}") == 0
+
+    async def test_processing_recommendation_is_not_cached(self) -> None:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            headers, prediction_id = await self.completed_prediction(client)
+            user_id = (await User.get(email=self.signup_data["email"])).id
+            await DiseasePrediction.filter(id=prediction_id).update(
+                challenge_status=ChallengeRecommendationStatus.PROCESSING
+            )
+            _, body = await self.get_recommendation(client, headers, prediction_id)
+
+        assert body["status"] == "PROCESSING"
+        assert await self.redis.exists(f"challenge:recommendation:{user_id}:{prediction_id}") == 0
+
+    async def test_challenge_list_cache_is_invalidated_by_new_recommendation(self) -> None:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            headers, _ = await self.completed_prediction(client)
+            first = await client.get("/api/v1/challenges", headers=headers)
+            cached = await client.get("/api/v1/challenges", headers=headers)
+
+            response = await client.post(PREDICTION_API, json={}, headers=headers)
+            second_prediction = response.json()["id"]
+            await self.complete_prediction(client, headers, second_prediction)
+            refreshed = await client.get("/api/v1/challenges", headers=headers)
+
+        assert len(first.json()) == 3
+        assert cached.json() == first.json()
+        assert len(refreshed.json()) == 6
+        assert {item["prediction_id"] for item in refreshed.json()} >= {second_prediction}
+
+    async def test_redis_failure_falls_back_to_database(self) -> None:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            headers, prediction_id = await self.completed_prediction(client)
+            with (
+                patch.object(self.redis, "get", AsyncMock(side_effect=RedisError("down"))),
+                patch.object(self.redis, "set", AsyncMock(side_effect=RedisError("down"))),
+            ):
+                code, body = await self.get_recommendation(client, headers, prediction_id)
+                listed = await client.get("/api/v1/challenges", headers=headers)
+
+        assert code == status.HTTP_200_OK
+        assert body["status"] == "COMPLETED"
+        assert listed.status_code == status.HTTP_200_OK
+        assert len(listed.json()) == 3
 
     # ---------- 권한·목록 ----------
 

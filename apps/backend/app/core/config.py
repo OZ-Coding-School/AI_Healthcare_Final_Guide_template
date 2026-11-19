@@ -64,6 +64,11 @@ class Config(BaseSettings):
     # 생성 중(PROCESSING) 상태가 이 시간보다 오래되면 서버 재시작 등으로 중단된 것으로 보고 다시 시작합니다.
     CHALLENGE_RECOMMENDATION_STALE_SECONDS: int = 300
 
+    # Redis 캐시 TTL(초). Cache Stampede를 막기 위해 실제 TTL은 기본값에 0~CACHE_TTL_JITTER_RATIO만큼 무작위로 더합니다.
+    CHALLENGE_RECOMMENDATION_CACHE_TTL_SECONDS: int = 600  # 완료된 챌린지 추천 (완료 후 내용이 바뀌지 않음)
+    CHALLENGE_LIST_CACHE_TTL_SECONDS: int = 60  # 내 챌린지 목록
+    CACHE_TTL_JITTER_RATIO: float = 0.2
+
     COOKIE_DOMAIN: str = "localhost"
     CORS_ALLOW_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
