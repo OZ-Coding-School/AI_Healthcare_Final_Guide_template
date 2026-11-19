@@ -127,9 +127,11 @@ function SurveyForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: 
     setApiError("");
     try {
       // Clean up optional fields
+      // drinking_frequency는 항상 필수입니다. 현재 음주하지 않으면 NOT_APPLICABLE을 보냅니다.
       const payload: CreateHealthSurveyBody = {
         smoking_status: form.smoking_status,
         drinking_status: form.drinking_status,
+        drinking_frequency: "NOT_APPLICABLE",
         systolic_bp: form.systolic_bp,
         diastolic_bp: form.diastolic_bp,
       };
