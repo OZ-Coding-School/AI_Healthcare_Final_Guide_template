@@ -195,7 +195,7 @@ class KnhanesPreprocessor:
             df.loc[mask, "smoking_fr_per_day"] = np.nan
 
             # 흡연 상태가 결측이면 일일흡연량도 결측치처리
-            is_status_nan = df["smoking_status"] == np.nan
+            is_status_nan = df["smoking_status"].isna()
             df.loc[is_status_nan, "smoking_fr_per_day"] = np.nan
 
             # 흡연 상태가 FORMER, NEVER이면 일일흡연량은 0으로 처리
