@@ -32,8 +32,7 @@ async def validation_exception_handler(request: Request, exc: Exception) -> ORJS
     # Pydantic 오류에는 거부된 실제 입력값(input/context)이 포함될 수 있으므로
     # 로그와 응답에는 필드 위치와 일반 오류 설명만 남깁니다.
     safe_errors = [
-        {key: error[key] for key in ("loc", "msg", "type") if key in error}
-        for error in validation_exc.errors()
+        {key: error[key] for key in ("loc", "msg", "type") if key in error} for error in validation_exc.errors()
     ]
     logger.warning(
         "[ValidationError] %s %s\nerrors=%s",
