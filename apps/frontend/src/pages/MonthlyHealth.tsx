@@ -130,6 +130,7 @@ function SurveyForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: 
       const payload: CreateHealthSurveyBody = {
         smoking_status: form.smoking_status,
         drinking_status: form.drinking_status,
+        drinking_frequency: form.drinking_frequency ?? "NOT_APPLICABLE",
         systolic_bp: form.systolic_bp,
         diastolic_bp: form.diastolic_bp,
       };
@@ -138,7 +139,6 @@ function SurveyForm({ onCancel, onSuccess }: { onCancel: () => void; onSuccess: 
         payload.smoking_fr_per_day = form.smoking_fr_per_day;
       }
       if (form.drinking_status === "CURRENT") {
-        if (form.drinking_frequency) payload.drinking_frequency = form.drinking_frequency;
         if (form.drinking_amount_per_session)
           payload.drinking_amount_per_session = form.drinking_amount_per_session;
       }
