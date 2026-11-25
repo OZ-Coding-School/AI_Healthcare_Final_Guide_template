@@ -113,12 +113,12 @@ function StatusBadge({ status }: { status: Status }) {
 
 /* ── Urine options ── */
 const URINE_OPTIONS: { value: UrineProteinStatus | UrineGlucoseStatus; label: string }[] = [
-  { value: "NEGATIVE", label: "음성 (-)" },
-  { value: "TRACE", label: "미량 (±)" },
-  { value: "POSITIVE_1", label: "양성 1+ (+)" },
-  { value: "POSITIVE_2", label: "양성 2+ (++)" },
-  { value: "POSITIVE_3", label: "양성 3+ (+++)" },
-  { value: "POSITIVE_4", label: "양성 4+ (++++)" },
+  { value: "-", label: "음성 (-)" },
+  { value: "±", label: "미량 (±)" },
+  { value: "1+", label: "양성 1+ (+)" },
+  { value: "2+", label: "양성 2+ (++)" },
+  { value: "3+", label: "양성 3+ (+++)" },
+  { value: "4+", label: "양성 4+ (++++)" },
 ];
 
 /* ── Input Field ── */
@@ -176,8 +176,8 @@ function ScreeningForm({ onCancel, onSuccess }: { onCancel: () => void; onSucces
     ast: 0,
     alt: 0,
     creatinine: 0,
-    urine_protein: "NEGATIVE",
-    urine_glucose: "NEGATIVE",
+    urine_protein: "-",
+    urine_glucose: "-",
     family_history_diabetes: false,
     family_history_hypertension: false,
     screening_at: "",

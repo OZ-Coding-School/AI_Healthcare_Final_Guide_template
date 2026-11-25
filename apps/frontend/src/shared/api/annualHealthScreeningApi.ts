@@ -2,10 +2,8 @@ import { request } from "./client";
 
 const BASE = "/api/v1/annual-health-screenings";
 
-export type UrineProteinStatus =
-  "NEGATIVE" | "TRACE" | "POSITIVE_1" | "POSITIVE_2" | "POSITIVE_3" | "POSITIVE_4";
-export type UrineGlucoseStatus =
-  "NEGATIVE" | "TRACE" | "POSITIVE_1" | "POSITIVE_2" | "POSITIVE_3" | "POSITIVE_4";
+export type UrineProteinStatus = "-" | "±" | "1+" | "2+" | "3+" | "4+";
+export type UrineGlucoseStatus = "-" | "±" | "1+" | "2+" | "3+" | "4+";
 
 export interface AnnualHealthScreening {
   id: string;
@@ -63,17 +61,17 @@ export interface CreateAnnualHealthScreeningBody {
 
 export function urineStatusToKorean(status: UrineProteinStatus | UrineGlucoseStatus): string {
   switch (status) {
-    case "NEGATIVE":
+    case "-":
       return "음성 (-)";
-    case "TRACE":
+    case "±":
       return "미량 (±)";
-    case "POSITIVE_1":
+    case "1+":
       return "양성 1+ (+)";
-    case "POSITIVE_2":
+    case "2+":
       return "양성 2+ (++)";
-    case "POSITIVE_3":
+    case "3+":
       return "양성 3+ (+++)";
-    case "POSITIVE_4":
+    case "4+":
       return "양성 4+ (++++)";
     default:
       return status;
