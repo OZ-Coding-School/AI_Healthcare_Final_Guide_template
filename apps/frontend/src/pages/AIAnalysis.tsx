@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { Brain, Zap, AlertTriangle, CheckCircle, ChevronRight, RefreshCw } from "lucide-react";
 
 function RiskGauge({
@@ -67,6 +68,7 @@ const FACTORS = [
 ];
 
 export default function AIAnalysis() {
+  const navigate = useNavigate();
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzed, setAnalyzed] = useState(true);
 
@@ -213,7 +215,11 @@ export default function AIAnalysis() {
           </div>
 
           {/* CTA to report */}
-          <div className="flex items-center justify-between p-5 bg-white border border-border rounded-xl hover:shadow-sm transition-shadow cursor-pointer">
+          <button
+            type="button"
+            onClick={() => navigate("/app/ai/report")}
+            className="w-full flex items-center justify-between p-5 bg-white border border-border rounded-xl hover:shadow-sm transition-shadow text-left"
+          >
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center"
@@ -229,7 +235,7 @@ export default function AIAnalysis() {
               </div>
             </div>
             <ChevronRight size={16} className="text-muted-foreground" />
-          </div>
+          </button>
         </div>
       )}
     </div>
