@@ -8,14 +8,27 @@ from app.core.llm import ClaudeClient, LLMNotConfiguredError, LLMRequestError, L
 SCHEMA = {"type": "object", "properties": {}, "required": [], "additionalProperties": False}
 
 
-def make_client(handler, api_key: str = "test-key") -> ClaudeClient:
+def make_client(handler, api_key: str = "test-key", effort: str | None = None) -> ClaudeClient:
     return ClaudeClient(
         api_key=api_key,
         model="claude-haiku-5-5",
         api_url="https://api.anthropic.com/v1/messages",
         api_version="2026-10-21",
         max_tokens=1024,
+        effort=effort,
         transport=httpx.MockTransport(handler),
+    )
+
+
+def text_response(text: str, stop_reason: str = "end_turn") -> httpx.Response:
+    return httpx.Response(
+        200,
+        json={
+            "model": "claude-haiku-5-5",
+            "content": [{"type": "text", "text": text}],
+            "stop_reason": stop_reason,
+            "usage": {"input_tokens": 10, "output_tokens": 5},
+        },
     )
 
 
@@ -49,6 +62,31 @@ async def test_generate_json_sends_messages_request_with_json_schema() -> None:
         "messages": [{"role": "user", "content": "user prompt"}],
         "output_config": {"format": {"type": "json_schema", "schema": SCHEMA}},
     }
+
+
+async def test_generate_json_sends_effort_in_output_config() -> None:
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["body"] = json.loads(request.content)
+        return text_response("{}")
+
+    await make_client(handler, effort="low").generate_json("s", "u", SCHEMA)
+
+    assert captured["body"]["output_config"] == {
+        "format": {"type": "json_schema", "schema": SCHEMA},
+        "effort": "low",
+    }
+    assert "thinking" not in captured["body"]
+
+
+async def test_truncated_response_is_returned_with_max_tokens_stop_reason() -> None:
+    response = await make_client(lambda request: text_response("", stop_reason="max_tokens")).generate_json(
+        "s", "u", SCHEMA
+    )
+
+    assert response.stop_reason == "max_tokens"
+    assert response.text == ""
 
 
 async def test_generate_json_requires_api_key() -> None:
