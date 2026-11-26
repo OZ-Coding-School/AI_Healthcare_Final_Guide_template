@@ -66,6 +66,10 @@ class Config(BaseSettings):
     CHALLENGE_RECOMMENDATION_COUNT: int = 3
     # 추천 챌린지 수락 기한(일)
     CHALLENGE_ACCEPT_EXPIRE_DAYS: int = 7
+    # 주기형(일간·주간·월간) 챌린지 완료 기준: 기간이 끝났을 때 목표 회차 중 이 비율 이상 성공하면 완료, 미만이면 실패
+    CHALLENGE_SUCCESS_RATE: float = 0.8
+    # 횟수형 챌린지 기한(일): 수락 후 이 기간 안에 목표 횟수를 채우면 완료 (하루 최대 1회 기록)
+    CHALLENGE_COUNT_BASED_DAYS: int = 30
     # 생성 중(PROCESSING) 상태가 이 시간보다 오래되면 서버 재시작 등으로 중단된 것으로 보고 다시 시작합니다.
     CHALLENGE_RECOMMENDATION_STALE_SECONDS: int = 300
 

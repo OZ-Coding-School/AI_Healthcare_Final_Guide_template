@@ -1,4 +1,4 @@
-import { request } from "./client";
+import { ApiError, request } from "./client";
 import { delay, type PredictionModelType } from "./diseasePredictionApi";
 
 export type ChallengeType = "DAILY" | "WEEKLY" | "MONTHLY" | "COUNT_BASED";
@@ -23,7 +23,37 @@ export interface PersonalChallenge {
   joined_at: string | null;
   completed_at: string | null;
   created_at: string;
+  /** 수락한 챌린지의 진행 상황. 수락 전(PENDING)이거나 예측별 추천 조회에서는 null */
+  progress: ChallengeProgress | null;
 }
+
+export interface ChallengeProgress {
+  total_rounds: number;
+  /** 완료에 필요한 성공 회차 (주기형: 목표의 80% 올림, 횟수형: 목표 전부) */
+  required_success: number;
+  success_count: number;
+  recorded_count: number;
+  /** 기록할 수 있는 마지막 날짜 (YYYY-MM-DD) */
+  ends_on: string;
+  /** 지금 기록할 수 있는 회차. 기록할 수 없으면 null */
+  current_round: number | null;
+  can_record: boolean;
+}
+
+export interface ChallengeHistory {
+  id: number;
+  current_round: number;
+  is_success: boolean;
+  memo: string | null;
+  created_at: string;
+}
+
+export interface PersonalChallengeDetail extends PersonalChallenge {
+  histories: ChallengeHistory[];
+}
+
+/** 회차 기록 메모 최대 길이 (백엔드 검증과 같음) */
+export const HISTORY_MEMO_MAX_LENGTH = 300;
 
 export interface ChallengeRecommendation {
   prediction_id: string;
@@ -56,6 +86,56 @@ export function retryChallengeRecommendation(
 export function getChallenges(status?: ChallengeStatus): Promise<PersonalChallenge[]> {
   const query = status ? `?${new URLSearchParams({ status })}` : "";
   return request<PersonalChallenge[]>(`/api/v1/challenges${query}`);
+}
+
+/** GET /api/v1/challenges/{challenge_id} — 진행 상황·회차 기록 포함 */
+export function getChallenge(challengeId: number): Promise<PersonalChallengeDetail> {
+  return request<PersonalChallengeDetail>(`/api/v1/challenges/${challengeId}`);
+}
+
+/** POST /api/v1/challenges/{challenge_id}/accept — 수락 기한 안의 PENDING만 */
+export function acceptChallenge(challengeId: number): Promise<PersonalChallengeDetail> {
+  return request<PersonalChallengeDetail>(`/api/v1/challenges/${challengeId}/accept`, {
+    method: "POST",
+  });
+}
+
+/** POST /api/v1/challenges/{challenge_id}/histories — 현재 회차만, 회차당 1건 */
+export function recordChallengeHistory(
+  challengeId: number,
+  body: { is_success: boolean; memo?: string | null }
+): Promise<PersonalChallengeDetail> {
+  return request<PersonalChallengeDetail>(`/api/v1/challenges/${challengeId}/histories`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+/** 수락·기록 실패 시 화면에 보여줄 문구 (409는 상태가 바뀐 경우라 목록을 다시 불러옵니다) */
+export function challengeActionErrorMessage(action: "accept" | "record", error: unknown): string {
+  const status = error instanceof ApiError ? error.status : undefined;
+  if (status === 404) return "챌린지를 찾을 수 없습니다. 목록을 새로고침해주세요.";
+  if (status === 409) {
+    return action === "accept"
+      ? "이미 수락했거나 수락 기한이 지난 챌린지입니다."
+      : "이번 회차는 이미 기록했거나 종료된 챌린지입니다.";
+  }
+  if (status === 422 && error instanceof ApiError) return error.message;
+  return action === "accept"
+    ? "챌린지를 수락하지 못했습니다. 잠시 후 다시 시도해주세요."
+    : "기록을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.";
+}
+
+/** 현재 회차를 부르는 말. 일간·횟수형은 오늘, 주간은 이번 주, 월간은 이번 달 */
+const ROUND_PERIOD_LABELS: Record<ChallengeType, string> = {
+  DAILY: "오늘",
+  WEEKLY: "이번 주",
+  MONTHLY: "이번 달",
+  COUNT_BASED: "오늘",
+};
+
+export function roundPeriodLabel(challengeType: ChallengeType): string {
+  return ROUND_PERIOD_LABELS[challengeType] ?? "이번 회차";
 }
 
 export function isRecommendationSettled(recommendation: ChallengeRecommendation): boolean {

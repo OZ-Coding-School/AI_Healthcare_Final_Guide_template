@@ -39,6 +39,9 @@ class PersonalChallenge(TimestampModel):
     joined_at = fields.DatetimeField(null=True, description="챌린지 참여(수락) 시간")
     completed_at = fields.DatetimeField(null=True, description="챌린지 완료 시간")
 
+    # 역참조 타입 표시용입니다 (PersonalChallengeHistory.challenge의 related_name). DB 컬럼이 아닙니다.
+    histories: fields.ReverseRelation["PersonalChallengeHistory"]
+
     class Meta:
         table = "personal_challenges"
 

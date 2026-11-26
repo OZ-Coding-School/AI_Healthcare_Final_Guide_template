@@ -7,7 +7,16 @@ from starlette import status
 from app.core.enums import ChallengeStatus
 from app.dependencies.security import get_request_user
 from app.models.user_models import User
-from app.schemas.challenges import ChallengeRecommendationResponse, PersonalChallengeResponse
+from app.schemas.challenges import (
+    ChallengeHistoryCreateRequest,
+    ChallengeRecommendationResponse,
+    PersonalChallengeDetailResponse,
+    PersonalChallengeResponse,
+)
+from app.services.challenge_participations import (
+    ChallengeParticipationService,
+    get_challenge_participation_service,
+)
 from app.services.challenge_recommendations import (
     ChallengeRecommendationService,
     get_challenge_recommendation_service,
@@ -56,3 +65,46 @@ async def get_challenge_list(
     service: ChallengeRecommendationService = Depends(get_challenge_recommendation_service),
 ) -> list[PersonalChallengeResponse]:
     return await service.get_challenge_list(request_user.id, challenge_status)
+
+
+@challenge_router.get(
+    path="/challenges/{challenge_id}",
+    response_model=PersonalChallengeDetailResponse,
+    status_code=status.HTTP_200_OK,
+    summary="내 챌린지 상세 조회 (진행 상황·회차 기록 포함)",
+)
+async def get_challenge_detail(
+    challenge_id: Annotated[int, Path(gt=0, description="Personal challenge ID")],
+    request_user: User = Depends(get_request_user),
+    service: ChallengeParticipationService = Depends(get_challenge_participation_service),
+) -> PersonalChallengeDetailResponse:
+    return await service.get_detail(request_user.id, challenge_id)
+
+
+@challenge_router.post(
+    path="/challenges/{challenge_id}/accept",
+    response_model=PersonalChallengeDetailResponse,
+    status_code=status.HTTP_200_OK,
+    summary="추천 챌린지 수락 (진행 시작)",
+)
+async def accept_challenge(
+    challenge_id: Annotated[int, Path(gt=0, description="Personal challenge ID")],
+    request_user: User = Depends(get_request_user),
+    service: ChallengeParticipationService = Depends(get_challenge_participation_service),
+) -> PersonalChallengeDetailResponse:
+    return await service.accept(request_user.id, challenge_id)
+
+
+@challenge_router.post(
+    path="/challenges/{challenge_id}/histories",
+    response_model=PersonalChallengeDetailResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="현재 회차 수행 기록",
+)
+async def record_challenge_history(
+    challenge_id: Annotated[int, Path(gt=0, description="Personal challenge ID")],
+    request: ChallengeHistoryCreateRequest,
+    request_user: User = Depends(get_request_user),
+    service: ChallengeParticipationService = Depends(get_challenge_participation_service),
+) -> PersonalChallengeDetailResponse:
+    return await service.record(request_user.id, challenge_id, request)

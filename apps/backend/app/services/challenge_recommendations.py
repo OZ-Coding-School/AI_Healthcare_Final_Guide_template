@@ -35,6 +35,7 @@ from app.repositories.challenge_repository import ChallengeRepository
 from app.repositories.disease_prediction_repository import DiseasePredictionRepository
 from app.schemas.challenges import ChallengeRecommendationResponse, PersonalChallengeResponse
 from app.services.challenge_parser import ChallengeParseError, ParsedChallenge, parse_challenge_response
+from app.services.challenge_participations import ChallengeProgressTracker
 from app.services.challenge_prompt import ChallengePrompt, build_challenge_prompt, build_retry_message
 
 # LLM이 응답을 끝까지 쓰지 못했거나 거절한 경우의 stop_reason입니다.
@@ -260,7 +261,8 @@ class ChallengeRecommendationService:
 
     - 추천 조회: 완료(COMPLETED)된 추천만 캐시합니다. 완료 후에는 내용이 바뀌지 않기 때문입니다.
       생성 중(PROCESSING)·실패(FAILED)는 몇 초 안에 바뀌고 백그라운드 작업이 DB를 직접 고치므로 캐시하지 않습니다.
-    - 목록 조회: 사용자·상태 필터별로 짧게 캐시하고, 챌린지가 저장되면 버전을 올려 무효화합니다.
+    - 목록 조회: 사용자·상태 필터별로 짧게 캐시하고, 챌린지가 저장·수락·기록·판정되면 버전을 올려 무효화합니다.
+      진행률(오늘 기록 가능 여부 등)도 함께 캐시하므로 날짜가 바뀐 직후 최대 TTL만큼 늦게 반영될 수 있습니다.
     - Cache Stampede는 Randomized TTL로 막습니다. 캐시를 다시 채우는 비용이 인덱스 조회 한 번이라
       Stale-While-Revalidate·PER처럼 복잡한 전략은 쓰지 않습니다.
     """
@@ -276,6 +278,7 @@ class ChallengeRecommendationService:
         self.prediction_repo = prediction_repo
         self.cache = cache
         self.launcher = launcher
+        self.tracker = ChallengeProgressTracker(repository, cache)
 
     async def get_recommendation(self, user_id: UUID, prediction_id: UUID) -> ChallengeRecommendationResponse:
         cached = await self.cache.get_recommendation(user_id, prediction_id)
@@ -322,7 +325,14 @@ class ChallengeRecommendationService:
                 pass  # 예전 형식의 캐시는 아래에서 새 값으로 덮어씁니다.
 
         challenges = await self.repo.get_list_by_user(user_id, challenge_status)
-        response = [PersonalChallengeResponse.from_model(challenge) for challenge in challenges]
+        # 진행 중 챌린지 중 기간이 끝난 것을 완료·실패로 반영하고 진행률을 함께 내려줍니다.
+        progresses = await self.tracker.refresh(challenges, _now())
+        if challenge_status is not None:
+            # 판정으로 상태가 바뀐 챌린지는 요청한 필터에서 뺍니다.
+            challenges = [challenge for challenge in challenges if challenge.status is challenge_status]
+        response = [
+            PersonalChallengeResponse.from_model(challenge, progresses.get(challenge.id)) for challenge in challenges
+        ]
         await self.cache.set_list(
             user_id, version, challenge_status, CHALLENGE_LIST_ADAPTER.dump_json(response).decode("utf-8")
         )
