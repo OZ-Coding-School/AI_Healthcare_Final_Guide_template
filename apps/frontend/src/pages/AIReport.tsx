@@ -1,5 +1,6 @@
 import { FileText, Download, ChevronRight } from "lucide-react";
 
+// 화면 구성용 하드코딩 예시입니다. 개인 프로젝트의 리포트 API 응답에 맞게 수정하세요.
 const REPORTS = [
   {
     id: 1,
@@ -58,6 +59,7 @@ export default function AIReport() {
 
       <div className="flex flex-col gap-4">
         {REPORTS.map((report) => (
+          /* 상세 화면 동작은 개인 프로젝트의 요구사항에 맞게 연결하세요. */
           <div
             key={report.id}
             className="bg-white border border-border rounded-xl overflow-hidden hover:shadow-sm transition-shadow cursor-pointer"
@@ -100,6 +102,7 @@ export default function AIReport() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {/* 다운로드는 개인 프로젝트의 리포트 형식에 맞게 연결하세요. */}
                 <button
                   className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   onClick={(e) => e.stopPropagation()}
