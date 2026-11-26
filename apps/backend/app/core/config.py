@@ -4,6 +4,7 @@ import zoneinfo
 from dataclasses import field
 from enum import StrEnum
 from pathlib import Path
+from typing import Literal
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -52,7 +53,10 @@ class Config(BaseSettings):
     ANTHROPIC_API_URL: str = "https://api.anthropic.com/v1/messages"
     ANTHROPIC_API_VERSION: str = "2026-10-21"
     LLM_MODEL: str = "claude-haiku-5-5"
-    LLM_MAX_TOKENS: int = 2048
+    # Claude Haiku 5.5는 thinking 필드를 생략하면 기본으로 생각(adaptive thinking)하고, 생각 토큰도 max_tokens에 포함됩니다.
+    # effort로 생각 분량을 조절합니다. low에서 1회 추천 출력은 약 1,900토큰이므로 max_tokens는 여유를 두고 4096으로 둡니다.
+    LLM_EFFORT: Literal["low", "medium", "high", "xhigh", "max"] = "low"
+    LLM_MAX_TOKENS: int = 4096
     LLM_TIMEOUT_SECONDS: float = 30.0
     # 호출 실패·응답 형식 오류를 합친 최대 시도 횟수
     LLM_MAX_ATTEMPTS: int = 2
