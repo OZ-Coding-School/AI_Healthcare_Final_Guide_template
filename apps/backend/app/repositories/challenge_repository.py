@@ -6,7 +6,7 @@ from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
 from app.core.enums import ChallengeRecommendationStatus, ChallengeStatus, DiseasePredictionStatus
-from app.models.challenge_models import PersonalChallenge
+from app.models.challenge_models import PersonalChallenge, PersonalChallengeHistory
 from app.models.disease_prediction_models import DiseasePrediction
 
 
@@ -103,7 +103,43 @@ class ChallengeRepository:
         return await PersonalChallenge.filter(prediction_id=prediction_id).order_by("id")
 
     async def get_list_by_user(self, user_id: UUID, status: ChallengeStatus | None = None) -> list[PersonalChallenge]:
+        # 진행률 계산에 회차 기록이 필요하므로 한 번의 추가 쿼리로 함께 가져옵니다 (N+1 방지).
         queryset = PersonalChallenge.filter(user_id=user_id)
         if status is not None:
             queryset = queryset.filter(status=status)
-        return await queryset.order_by("-created_at", "-id")
+        return await queryset.order_by("-created_at", "-id").prefetch_related("histories")
+
+    # ---------- 수락·회차 기록 ----------
+
+    async def get_by_id_for_user(self, user_id: UUID, challenge_id: int) -> PersonalChallenge | None:
+        """사용자 본인의 챌린지만 조회합니다. 다른 사용자의 챌린지는 None입니다."""
+        return await PersonalChallenge.filter(id=challenge_id, user_id=user_id).prefetch_related("histories").first()
+
+    async def accept(self, user_id: UUID, challenge_id: int, joined_at: datetime) -> bool:
+        """
+        수락 기한 안의 PENDING 챌린지만 IN_PROGRESS로 바꿉니다. 바꾸지 못하면 False를 반환합니다.
+        조건부 UPDATE 한 번으로 처리하므로, 같은 챌린지를 동시에 수락해도 한 번만 반영됩니다.
+        """
+        updated = await PersonalChallenge.filter(
+            id=challenge_id,
+            user_id=user_id,
+            status=ChallengeStatus.PENDING,
+            expired_at__gt=joined_at,
+            total_rounds__isnull=False,
+        ).update(status=ChallengeStatus.IN_PROGRESS, joined_at=joined_at)
+        return updated > 0
+
+    async def create_history(
+        self, challenge_id: int, current_round: int, is_success: bool, memo: str | None
+    ) -> PersonalChallengeHistory:
+        """같은 회차를 이미 기록했으면 유니크 제약(challenge·current_round)으로 IntegrityError가 납니다."""
+        return await PersonalChallengeHistory.create(
+            challenge_id=challenge_id, current_round=current_round, is_success=is_success, memo=memo
+        )
+
+    async def finish(self, challenge_id: int, status: ChallengeStatus, completed_at: datetime) -> bool:
+        """진행 중(IN_PROGRESS)인 챌린지만 완료·실패로 바꿉니다. 이미 판정된 챌린지는 그대로 둡니다."""
+        updated = await PersonalChallenge.filter(id=challenge_id, status=ChallengeStatus.IN_PROGRESS).update(
+            status=status, completed_at=completed_at
+        )
+        return updated > 0
