@@ -197,6 +197,9 @@ export default function Challenge() {
         <p className="text-sm text-muted-foreground">
           AI가 분석한 위험 요인을 기반으로 맞춤 챌린지를 추천합니다.
         </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          아래 챌린지와 추천 내용은 화면 구성용 예시 데이터이므로 개인 프로젝트에 맞게 수정하세요.
+        </p>
       </div>
 
       {/* Stats */}
