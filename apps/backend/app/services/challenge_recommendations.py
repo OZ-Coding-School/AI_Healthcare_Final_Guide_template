@@ -34,7 +34,7 @@ from app.repositories.challenge_cache_repository import ChallengeCacheRepository
 from app.repositories.challenge_repository import ChallengeRepository
 from app.repositories.disease_prediction_repository import DiseasePredictionRepository
 from app.schemas.challenges import ChallengeRecommendationResponse, PersonalChallengeResponse
-from app.services.challenge_parser import ChallengeParseError, ParsedChallenge, parse_challenges
+from app.services.challenge_parser import ChallengeParseError, ParsedChallenge, parse_challenge_response
 from app.services.challenge_prompt import ChallengePrompt, build_challenge_prompt, build_retry_message
 
 # LLM이 응답을 끝까지 쓰지 못했거나 거절한 경우의 stop_reason입니다.
@@ -112,7 +112,10 @@ class ChallengeRecommendationGenerator:
             logger.warning("Challenge recommendation %s was taken over by another run", prediction_id)
 
     async def _request(self, prediction_id: UUID, prompt: ChallengePrompt) -> tuple[list[ParsedChallenge], str]:
-        """LLM을 호출하고 검증합니다. 일시적 장애나 형식 오류는 LLM_MAX_ATTEMPTS까지 다시 시도합니다."""
+        """
+        LLM을 호출하고 검증합니다. 일시적 장애, 형식 오류, 개수 부족은 LLM_MAX_ATTEMPTS까지 다시 시도합니다.
+        마지막 시도에서도 개수가 모자라면 통과한 챌린지만 저장합니다 (하나도 없으면 실패).
+        """
         user_message = prompt.user
         attempts = max(1, settings.LLM_MAX_ATTEMPTS)
         for attempt in range(1, attempts + 1):
@@ -127,7 +130,7 @@ class ChallengeRecommendationGenerator:
             try:
                 if response.stop_reason in INCOMPLETE_STOP_REASONS:
                     raise ChallengeParseError([f"응답이 완성되지 않았습니다(stop_reason={response.stop_reason})"])
-                challenges = parse_challenges(
+                parsed = parse_challenge_response(
                     response.text,
                     allowed_features=prompt.allowed_features,
                     allowed_diseases={str(disease) for disease in prompt.target_diseases},
@@ -144,6 +147,29 @@ class ChallengeRecommendationGenerator:
                     raise
                 user_message = build_retry_message(prompt, error.reasons)
                 continue
+
+            challenges = parsed.challenges
+            if parsed.reasons:
+                # 버린 이유에는 필드명·요인명만 있고 응답 본문은 없습니다.
+                logger.warning(
+                    "Challenge recommendation %s: dropped %d challenges (attempt %d): %s",
+                    prediction_id,
+                    len(parsed.reasons),
+                    attempt,
+                    " | ".join(parsed.reasons),
+                )
+            if len(challenges) < prompt.count:
+                if not last_attempt:
+                    # 개수가 모자라면 이유를 붙여 한 번 더 요청합니다. 마지막 시도에서는 통과한 챌린지만 저장합니다.
+                    shortage = f"챌린지가 {len(challenges)}개뿐입니다. 정확히 {prompt.count}개를 추천해 주세요"
+                    user_message = build_retry_message(prompt, [*parsed.reasons, shortage])
+                    continue
+                logger.warning(
+                    "Challenge recommendation %s: saving %d of %d challenges",
+                    prediction_id,
+                    len(challenges),
+                    prompt.count,
+                )
             return challenges, response.model
         raise AssertionError("unreachable")
 

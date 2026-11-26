@@ -36,9 +36,13 @@ DESCRIPTION_MAX_LENGTH = 1000
 EXPECTED_EFFECT_MAX_LENGTH = 300
 
 
-def _round_rule(challenge_type: ChallengeType, meaning: str, unit: str) -> str:
+# 횟수형 챌린지를 채워야 하는 기간(일). 챌린지 수락·기록 기능의 횟수형 기한과 같게 유지합니다.
+COUNT_BASED_DAYS = 30
+
+
+def _round_rule(challenge_type: ChallengeType, meaning: str, unit: str, example: str) -> str:
     low, high = ROUND_RANGES[challenge_type]
-    return f"  - {challenge_type}: {meaning}, total_rounds는 {unit} {low}~{high}"
+    return f'  - {challenge_type}: {meaning} total_rounds는 {unit} {low}~{high}. 제목 예: "{example}"'
 
 
 SYSTEM_PROMPT = "\n".join(
@@ -49,25 +53,49 @@ SYSTEM_PROMPT = "\n".join(
         "반드시 지킬 규칙",
         "1. 추천 근거는 [근거로 쓸 수 있는 요인] 목록에 있는 요인만 사용합니다. "
         "나이·성별·키·가족력처럼 목록에 없는 요인은 근거로 쓰지 않습니다.",
-        '2. basis_features에는 목록의 "feature" 값을 그대로 적습니다. '
-        "목록이 비어 있으면 basis_features는 빈 배열로 두고 일반적인 건강 습관을 추천합니다.",
-        "3. target_diseases에는 챌린지가 겨냥하는 질환의 model_type 값을 적습니다. "
-        "근거 요인이 속한 질환을 포함해야 합니다.",
-        "4. 의료 행위로 오해될 내용은 쓰지 않습니다: 진단, 약 복용·중단·용량 변경, 처방, 치료, 완치를 언급하지 않습니다.",
-        '5. "위험이 30% 줄어듭니다"처럼 효과를 숫자로 약속하지 않습니다. 기대 효과는 일반적인 건강 효과로 설명합니다.',
-        "6. [현재 생활습관]을 참고해 해당하지 않는 습관을 권하지 않습니다. 예: 비흡연자에게 금연 챌린지를 추천하지 않습니다.",
-        "7. 서로 다른 행동을 다루는 챌린지를 추천합니다. 위험 등급이 높은 질환과 순위가 높은 요인을 먼저 다룹니다.",
-        "8. 모든 문장은 한국어 존댓말로 씁니다.",
+        '2. basis_features에는 목록의 "feature" 값을 그대로 적습니다. 근거 요인으로 먼저 챌린지를 만듭니다. '
+        "근거 요인을 모두 다뤄도 요청한 개수가 모자랄 때만, basis_features를 빈 배열로 둔 일반 건강 습관 챌린지로 채웁니다. "
+        "목록이 비어 있으면 모든 챌린지를 일반 건강 습관으로 추천합니다.",
+        "3. 요청한 개수만큼 정확히 추천합니다. 더 적거나 많게 추천하지 않습니다.",
+        "4. target_diseases에는 챌린지가 겨냥하는 질환의 model_type 값을 적습니다. "
+        "근거 요인이 속한 질환을 포함해야 합니다. 일반 건강 습관은 위험 등급이 높은 질환을 적습니다.",
+        "5. 의료 행위로 오해될 내용은 쓰지 않습니다: 진단, 약 복용·중단·용량 변경, 처방, 치료, 완치를 언급하지 않습니다.",
+        '6. "위험이 30% 줄어듭니다"처럼 효과를 숫자로 약속하지 않습니다. 기대 효과는 일반적인 건강 효과로 설명합니다.',
+        "7. [현재 생활습관]을 참고해 해당하지 않는 습관을 권하지 않습니다. 예: 비흡연자에게 금연 챌린지를 추천하지 않습니다.",
+        "8. 목표는 [현재 생활습관]에서 출발해 기간 안에 무리 없이 해낼 수 있는 수준으로 정합니다. "
+        "한 번에 끊거나 0으로 줄이게 하지 말고 단계적으로 줄이게 합니다. "
+        '예: 하루 15개비를 피우면 "하루 10개비 이하로 줄이기", 주 4회 이상 마시면 "주 2일 술 없는 날 만들기"',
+        "9. 서로 다른 행동을 다루는 챌린지를 추천합니다. 위험 등급이 높은 질환과 순위가 높은 요인을 먼저 다룹니다.",
+        "10. 모든 문장은 한국어 존댓말로 씁니다.",
         "",
         "필드 작성 규칙",
         f'- title: {TITLE_MAX_LENGTH}자 이내. 무엇을 얼마나 하는지 드러나게 씁니다. 예: "매일 30분 빠르게 걷기"',
         f"- description: {DESCRIPTION_MAX_LENGTH}자 이내. 실천 방법을 구체적으로 2~4문장으로 씁니다.",
         f"- expected_effect: {EXPECTED_EFFECT_MAX_LENGTH}자 이내. 1~2문장으로 씁니다.",
-        "- challenge_type과 total_rounds(목표 회차)",
-        _round_rule(ChallengeType.DAILY, "매일 하는 챌린지", "일 수"),
-        _round_rule(ChallengeType.WEEKLY, "주 단위 목표", "주 수"),
-        _round_rule(ChallengeType.MONTHLY, "월 단위 목표", "개월 수"),
-        _round_rule(ChallengeType.COUNT_BASED, "정해진 횟수를 채우는 챌린지", "횟수"),
+        "- 제목과 설명에 나오는 빈도·횟수·시간은 서로 같아야 합니다. "
+        '예: 제목이 "주 3회 걷기"면 설명도 주 3회를 기준으로 씁니다.',
+        "- challenge_type은 제목의 빈도와 맞아야 하고, total_rounds(목표 회차)는 유형별 범위를 지킵니다.",
+        _round_rule(ChallengeType.DAILY, "매일 하는 행동입니다. 하루가 1회차입니다.", "일 수", "매일 식후 10분 걷기"),
+        _round_rule(
+            ChallengeType.WEEKLY,
+            "주마다 정한 횟수를 채우는 행동입니다. 한 주가 1회차입니다.",
+            "주 수",
+            "주 3회 근력 운동하기",
+        ),
+        _round_rule(
+            ChallengeType.MONTHLY,
+            "달마다 정한 목표를 채우는 행동입니다. 한 달이 1회차입니다.",
+            "개월 수",
+            "한 달에 4번 등산하기",
+        ),
+        _round_rule(
+            ChallengeType.COUNT_BASED,
+            f"날짜를 정하지 않고 실천한 날을 세는 행동입니다. 하루 1회까지 셀 수 있고, "
+            f"{COUNT_BASED_DAYS}일 안에 total_rounds회를 채워야 합니다.",
+            "횟수",
+            "술 없는 저녁 10번 만들기",
+        ),
+        "- 회차 대부분을 성공해야 챌린지가 완료되므로, 한 회차의 분량은 매번 실천할 수 있을 만큼으로 정합니다.",
         "",
         "응답은 지정된 JSON 형식만 출력합니다.",
     ]
@@ -170,6 +198,12 @@ def build_challenge_prompt(
         )
     else:
         lines.append("- (없음: 생활습관으로 바꿀 수 있는 위험 요인이 확인되지 않았습니다)")
+    distinct_features = len(dict.fromkeys(factor.feature for factor in factors))
+    if 0 < distinct_features < count:
+        lines.append(
+            f"- 근거 요인이 {distinct_features}개라, 챌린지 {count - distinct_features}개까지는 "
+            "basis_features를 비운 일반 건강 습관으로 채울 수 있습니다."
+        )
 
     lines += ["", "[현재 생활습관]", *_habit_lines(survey)]
     if any(result.risk_level is DiseaseRiskLevel.HIGH for result in ordered):
