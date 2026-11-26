@@ -149,6 +149,9 @@ export default function AIAnalysis() {
               2025.01.14 분석
             </span>
           </div>
+          <p className="-mt-3 text-xs text-muted-foreground">
+            ※ 아래 분석 결과는 화면 확인용 예시입니다.
+          </p>
 
           {/* Gauges */}
           <div className="bg-white border border-border rounded-xl p-8 flex justify-around">
