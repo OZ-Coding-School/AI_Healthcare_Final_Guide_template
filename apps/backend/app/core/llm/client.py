@@ -2,6 +2,7 @@
 LLM 호출 클라이언트입니다. 공급자 SDK 없이 기존 의존성인 httpx로 Claude Messages API를 호출합니다.
 
 - 응답 형식은 Structured outputs(output_config.format=json_schema)로 JSON 스키마를 지정합니다.
+- 생각 분량은 output_config.effort로 조절합니다. 생각 토큰도 max_tokens에 포함되므로, 응답이 잘리면(stop_reason=max_tokens) 경고 로그를 남깁니다.
 - 서비스는 LLMClient 프로토콜에만 의존하므로, 테스트에서는 가짜 클라이언트로 바꿔 끼웁니다.
 - API 키와 프롬프트·응답 본문은 로그에 남기지 않습니다.
 """
@@ -61,7 +62,8 @@ class ClaudeClient:
         model: str,
         api_url: str = "https://api.anthropic.com/v1/messages",
         api_version: str = "2026-10-21",
-        max_tokens: int = 2048,
+        max_tokens: int = 4096,
+        effort: str | None = None,
         timeout_seconds: float = 30.0,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
@@ -70,6 +72,7 @@ class ClaudeClient:
         self._api_url = api_url
         self._api_version = api_version
         self._max_tokens = max_tokens
+        self._effort = effort
         self._timeout = timeout_seconds
         self._transport = transport
 
@@ -77,12 +80,15 @@ class ClaudeClient:
         if not self._api_key:
             raise LLMNotConfiguredError("ANTHROPIC_API_KEY is not set.")
 
+        output_config: dict[str, Any] = {"format": {"type": "json_schema", "schema": schema}}
+        if self._effort:
+            output_config["effort"] = self._effort
         body = {
             "model": self.model_name,
             "max_tokens": self._max_tokens,
             "system": system,
             "messages": [{"role": "user", "content": user}],
-            "output_config": {"format": {"type": "json_schema", "schema": schema}},
+            "output_config": output_config,
         }
         headers = {
             "x-api-key": self._api_key,
@@ -107,6 +113,14 @@ class ClaudeClient:
             text = "".join(block.get("text", "") for block in data.get("content", []) if block.get("type") == "text")
         except (ValueError, AttributeError, TypeError):
             raise LLMUnavailableError("LLM returned an unreadable response.") from None
+        if data.get("stop_reason") == "max_tokens":
+            # 생각 토큰까지 max_tokens에 포함되므로, 잘린 응답은 파싱 단계에서 "JSON 형식이 아님"으로만 보입니다.
+            logger.warning(
+                "LLM response was truncated: max_tokens=%s, effort=%s, usage=%s",
+                self._max_tokens,
+                self._effort,
+                data.get("usage"),
+            )
         return LLMResponse(
             text=text,
             model=str(data.get("model") or self.model_name),
@@ -130,5 +144,6 @@ def get_llm_client() -> LLMClient:
         api_url=settings.ANTHROPIC_API_URL,
         api_version=settings.ANTHROPIC_API_VERSION,
         max_tokens=settings.LLM_MAX_TOKENS,
+        effort=settings.LLM_EFFORT,
         timeout_seconds=settings.LLM_TIMEOUT_SECONDS,
     )
