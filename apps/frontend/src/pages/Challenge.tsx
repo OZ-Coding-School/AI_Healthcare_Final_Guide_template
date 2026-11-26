@@ -1,13 +1,34 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Target, Calendar, Plus, AlertTriangle } from "lucide-react";
-import { getChallenges, isExpired, type PersonalChallenge } from "../shared/api/challengeApi";
+import { Target, Calendar, Plus, AlertTriangle, History } from "lucide-react";
+import {
+  acceptChallenge,
+  challengeActionErrorMessage,
+  getChallenges,
+  isExpired,
+  recordChallengeHistory,
+  type PersonalChallenge,
+} from "../shared/api/challengeApi";
+import { ApiError } from "../shared/api/client";
 import ChallengeCard from "../shared/components/ChallengeCard";
+import ChallengeProgressPanel from "../shared/components/ChallengeProgressPanel";
 
 export default function Challenge() {
   const navigate = useNavigate();
   const [challenges, setChallenges] = useState<PersonalChallenge[] | null>(null);
   const [error, setError] = useState("");
+  /** 수락·기록 요청 중인 챌린지 id (중복 클릭 방지) */
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState("");
+
+  async function loadChallenges() {
+    try {
+      setChallenges(await getChallenges());
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "챌린지를 불러오지 못했습니다.");
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -23,9 +44,48 @@ export default function Challenge() {
     };
   }, []);
 
+  /** 응답으로 받은 챌린지로 목록의 같은 항목을 바꿉니다. 상세 응답의 histories는 목록에 필요 없어 뺍니다. */
+  function replaceChallenge({
+    histories: _histories,
+    ...updated
+  }: PersonalChallenge & { histories?: unknown }) {
+    setChallenges((prev) => prev?.map((item) => (item.id === updated.id ? updated : item)) ?? prev);
+  }
+
+  async function runAction(
+    challengeId: number,
+    action: "accept" | "record",
+    call: () => Promise<PersonalChallenge>
+  ): Promise<boolean> {
+    if (busyId !== null) return false;
+    setBusyId(challengeId);
+    setActionError("");
+    try {
+      replaceChallenge(await call());
+      return true;
+    } catch (err) {
+      setActionError(challengeActionErrorMessage(action, err));
+      // 409·404는 다른 곳에서 상태가 바뀐 경우라 최신 목록을 다시 불러옵니다.
+      if (err instanceof ApiError && (err.status === 409 || err.status === 404))
+        await loadChallenges();
+      return false;
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const handleAccept = (challengeId: number) =>
+    runAction(challengeId, "accept", () => acceptChallenge(challengeId));
+
+  const handleRecord = (challengeId: number, isSuccess: boolean, memo: string) =>
+    runAction(challengeId, "record", () =>
+      recordChallengeHistory(challengeId, { is_success: isSuccess, memo: memo.trim() || null })
+    );
+
   const list = challenges ?? [];
   const active = list.filter((c) => c.status === "IN_PROGRESS");
   const recommended = list.filter((c) => c.status === "PENDING" && !isExpired(c));
+  const finished = list.filter((c) => c.status === "COMPLETED" || c.status === "FAILED");
   const completedCount = list.filter((c) => c.status === "COMPLETED").length;
 
   return (
@@ -43,9 +103,9 @@ export default function Challenge() {
         </p>
       </div>
 
-      {error && (
+      {(error || actionError) && (
         <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
-          <AlertTriangle size={15} /> {error}
+          <AlertTriangle size={15} /> {error || actionError}
         </div>
       )}
 
@@ -73,7 +133,17 @@ export default function Challenge() {
         {active.length > 0 ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {active.map((c) => (
-              <ChallengeCard key={c.id} challenge={c} />
+              <ChallengeCard
+                key={c.id}
+                challenge={c}
+                action={
+                  <ChallengeProgressPanel
+                    challenge={c}
+                    busy={busyId === c.id}
+                    onRecord={(isSuccess, memo) => handleRecord(c.id, isSuccess, memo)}
+                  />
+                }
+              />
             ))}
           </div>
         ) : (
@@ -114,18 +184,38 @@ export default function Challenge() {
               challenge={c}
               action={
                 <button
-                  disabled
-                  title="챌린지 수락 API가 준비되면 사용할 수 있습니다."
-                  className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-sm font-medium text-white opacity-50 cursor-not-allowed"
+                  onClick={() => handleAccept(c.id)}
+                  disabled={busyId !== null}
+                  className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: "#10B981" }}
                 >
-                  <Plus size={14} /> 챌린지 시작하기 (준비 중)
+                  <Plus size={14} /> {busyId === c.id ? "시작하는 중..." : "챌린지 시작하기"}
                 </button>
               }
             />
           ))}
         </div>
       </div>
+
+      {/* Finished */}
+      {finished.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+            <History size={16} style={{ color: "#8B5CF6" }} /> 지난 챌린지
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {finished.map((c) => (
+              <ChallengeCard
+                key={c.id}
+                challenge={c}
+                action={
+                  <ChallengeProgressPanel challenge={c} busy={false} onRecord={async () => false} />
+                }
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
