@@ -20,7 +20,13 @@ from app.models.disease_prediction_models import DiseasePrediction
 from app.models.user_models import User
 from app.services.challenge_recommendations import challenge_recommendation_launcher
 from main import app
-from tests.challenge_apis.helpers import FakeLLMClient, challenge_item, challenges_json, unavailable
+from tests.challenge_apis.helpers import (
+    FakeLLMClient,
+    challenge_item,
+    challenges_json,
+    unavailable,
+    valid_response_text,
+)
 from tests.disease_prediction_apis.helpers import (
     create_survey,
     failed_result_fields,
@@ -248,6 +254,27 @@ class TestChallengeRecommendationAPI(TestCase):
         assert len(self.llm.calls) == settings.LLM_MAX_ATTEMPTS
         assert await PersonalChallenge.filter(prediction_id=prediction_id).count() == 0
 
+    async def test_too_few_challenges_are_requested_again(self) -> None:
+        self.llm.responses = [challenges_json([challenge_item()]), valid_response_text()]
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            headers, prediction_id = await self.completed_prediction(client)
+            _, body = await self.get_recommendation(client, headers, prediction_id)
+
+        assert body["status"] == "COMPLETED"
+        assert len(body["challenges"]) == 3
+        assert len(self.llm.calls) == 2
+        assert "정확히 3개를 추천해 주세요" in self.llm.calls[1]["user"]
+
+    async def test_too_few_challenges_on_last_attempt_are_saved(self) -> None:
+        self.llm.responses = [challenges_json([challenge_item()])]
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            headers, prediction_id = await self.completed_prediction(client)
+            _, body = await self.get_recommendation(client, headers, prediction_id)
+
+        assert body["status"] == "COMPLETED"
+        assert len(body["challenges"]) == 1
+        assert len(self.llm.calls) == settings.LLM_MAX_ATTEMPTS
+
     async def test_unavailable_llm_is_retried(self) -> None:
         self.llm.responses = [unavailable(), challenges_json([challenge_item()])]
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -281,7 +308,7 @@ class TestChallengeRecommendationAPI(TestCase):
         self.llm.responses = ["JSON이 아닌 응답"]
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             headers, prediction_id = await self.completed_prediction(client)
-            self.llm.responses = [challenges_json([challenge_item()])]
+            self.llm.responses = [valid_response_text()]
             self.llm.calls.clear()
             response = await client.post(f"{PREDICTION_API}/{prediction_id}/challenges/retry", headers=headers)
             _, body = await self.get_recommendation(client, headers, prediction_id)
@@ -289,7 +316,7 @@ class TestChallengeRecommendationAPI(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.json()["error_code"] is None
         assert body["status"] == "COMPLETED"
-        assert len(body["challenges"]) == 1
+        assert len(body["challenges"]) == 3
         assert len(self.llm.calls) == 1
 
     async def test_retry_completed_recommendation_returns_conflict(self) -> None:

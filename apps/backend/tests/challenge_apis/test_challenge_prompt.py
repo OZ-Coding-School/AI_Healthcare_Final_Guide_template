@@ -135,3 +135,34 @@ def test_build_retry_message_appends_reasons() -> None:
 def test_build_prompt_requires_results() -> None:
     with pytest.raises(ValueError):
         build_challenge_prompt([], survey(), count=3)
+
+
+# ---------- 개수·유형·목표 규칙 ----------
+
+
+def test_system_prompt_states_count_type_and_goal_rules() -> None:
+    prompt = build_challenge_prompt([result(DIABETES, [factor("허리둘레", 0.1)])], survey(), count=3)
+
+    assert "요청한 개수만큼 정확히 추천합니다" in prompt.system
+    assert "제목과 설명에 나오는 빈도·횟수·시간은 서로 같아야 합니다" in prompt.system
+    assert "단계적으로 줄이게 합니다" in prompt.system
+    assert "하루 1회까지 셀 수 있고, 30일 안에" in prompt.system
+
+
+def test_user_prompt_allows_general_challenges_when_factors_are_fewer_than_count() -> None:
+    prompt = build_challenge_prompt([result(DIABETES, [factor("허리둘레", 0.1)])], survey(), count=3)
+
+    assert "근거 요인이 1개라, 챌린지 2개까지는 basis_features를 비운 일반 건강 습관으로" in prompt.user
+
+
+@pytest.mark.parametrize(
+    "factors",
+    [
+        [],
+        [factor("허리둘레", 0.3), factor("BMI", 0.2), factor("중성지방", 0.1)],
+    ],
+)
+def test_user_prompt_has_no_general_note_when_factors_are_empty_or_enough(factors: list) -> None:
+    prompt = build_challenge_prompt([result(DIABETES, factors)], survey(), count=3)
+
+    assert "일반 건강 습관으로 채울 수 있습니다" not in prompt.user
