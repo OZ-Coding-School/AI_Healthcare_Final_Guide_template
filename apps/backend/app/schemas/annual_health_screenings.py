@@ -1,11 +1,11 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Self
 from uuid import UUID
 
-from pydantic import BaseModel, Field, PositiveInt, field_serializer
+from pydantic import BaseModel, Field, PositiveInt, field_serializer, model_validator
 
-from app.core.enums import UrineGlucoseStatus, UrineProteinStatus
+from app.core.enums import FamilyHistoryAnswer, UrineGlucoseStatus, UrineProteinStatus
 from app.schemas.base import BaseSerializerModel
 from app.schemas.health_profiles import Height, Weight
 
@@ -15,7 +15,23 @@ HbA1c = Annotated[Decimal, Field(ge=0, max_digits=3, decimal_places=1)]
 Creatinine = Annotated[Decimal, Field(ge=0, max_digits=3, decimal_places=2)]
 
 
-class AnnualHealthScreeningCreateRequest(BaseModel):
+FAMILY_HISTORY_RELATIONS = ("father", "mother", "siblings")
+FAMILY_HISTORY_DISEASES = {
+    "diabetes_family_history": "family_history_diabetes",
+    "hypertension_family_history": "family_history_hypertension",
+}
+
+
+class FamilyHistoryDetailMixin(BaseModel):
+    diabetes_family_history_father: FamilyHistoryAnswer | None = None
+    diabetes_family_history_mother: FamilyHistoryAnswer | None = None
+    diabetes_family_history_siblings: FamilyHistoryAnswer | None = None
+    hypertension_family_history_father: FamilyHistoryAnswer | None = None
+    hypertension_family_history_mother: FamilyHistoryAnswer | None = None
+    hypertension_family_history_siblings: FamilyHistoryAnswer | None = None
+
+
+class AnnualHealthScreeningCreateRequest(FamilyHistoryDetailMixin):
     height: Height
     weight: Weight
     bmi: BMI
@@ -38,6 +54,23 @@ class AnnualHealthScreeningCreateRequest(BaseModel):
     screening_at: date
     is_fasting: bool
 
+    @model_validator(mode="after")
+    def validate_family_history_detail(self) -> Self:
+        for prefix, has_history_field in FAMILY_HISTORY_DISEASES.items():
+            answers = {relation: getattr(self, f"{prefix}_{relation}") for relation in FAMILY_HISTORY_RELATIONS}
+            provided = [answer for answer in answers.values() if answer is not None]
+            if not provided:
+                continue
+            if len(provided) != len(FAMILY_HISTORY_RELATIONS):
+                raise ValueError(f"{prefix}_father, _mother, _siblings must be provided together")
+            for relation in ("father", "mother"):
+                if answers[relation] == FamilyHistoryAnswer.NO_SIBLINGS:
+                    raise ValueError(f"{prefix}_{relation} cannot be NO_SIBLINGS")
+            has_yes = FamilyHistoryAnswer.YES in provided
+            if getattr(self, has_history_field) != has_yes:
+                raise ValueError(f"{has_history_field} must match {prefix} detail")
+        return self
+
 
 class AnnualHealthScreeningListResponse(BaseSerializerModel):
     id: UUID
@@ -46,7 +79,7 @@ class AnnualHealthScreeningListResponse(BaseSerializerModel):
     created_at: datetime
 
 
-class AnnualHealthScreeningResponse(AnnualHealthScreeningListResponse):
+class AnnualHealthScreeningResponse(AnnualHealthScreeningListResponse, FamilyHistoryDetailMixin):
     height: Height
     weight: Weight
     bmi: BMI

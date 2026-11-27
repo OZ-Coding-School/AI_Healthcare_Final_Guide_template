@@ -9,6 +9,7 @@ from ..core.enums import (
     BloodSugarMeasurementType,
     DrinkingFrequency,
     ExerciseType,
+    FamilyHistoryAnswer,
     Gender,
     HabitStatus,
     UrineGlucoseStatus,
@@ -19,6 +20,15 @@ from .base import TimestampModel
 
 if TYPE_CHECKING:
     from .user_models import User
+
+
+def _family_history_field(description: str) -> FamilyHistoryAnswer | None:
+    return fields.CharEnumField(
+        enum_type=FamilyHistoryAnswer,
+        max_length=get_enum_max_length(FamilyHistoryAnswer),
+        null=True,
+        description=description,
+    )
 
 
 class HealthProfile(TimestampModel):
@@ -145,6 +155,13 @@ class AnnualHealthScreening(TimestampModel):
     )
     family_history_diabetes = fields.BooleanField(description="직계 가족의 당뇨병 병력 여부")
     family_history_hypertension = fields.BooleanField(description="직계 가족의 고혈압 병력 여부")
+    # 기존 건강검진 기록과의 호환을 위해 상세 가족력은 선택 입력입니다.
+    diabetes_family_history_father = _family_history_field("당뇨병 가족력(아버지)")
+    diabetes_family_history_mother = _family_history_field("당뇨병 가족력(어머니)")
+    diabetes_family_history_siblings = _family_history_field("당뇨병 가족력(형제자매)")
+    hypertension_family_history_father = _family_history_field("고혈압 가족력(아버지)")
+    hypertension_family_history_mother = _family_history_field("고혈압 가족력(어머니)")
+    hypertension_family_history_siblings = _family_history_field("고혈압 가족력(형제자매)")
 
     screening_at = fields.DateField(description="검진 날짜")
     is_fasting = fields.BooleanField(description="공복 검사 여부")

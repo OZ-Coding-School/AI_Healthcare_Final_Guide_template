@@ -92,6 +92,23 @@ class DiseaseRiskLevel(StrEnum):
         return mapping[self]
 
 
+class FamilyHistoryAnswer(StrEnum):
+    YES = "YES"
+    NO = "NO"
+    UNKNOWN = "UNKNOWN"
+    NO_SIBLINGS = "NO_SIBLINGS"
+
+    @property
+    def label(self) -> str:
+        mapping = {
+            FamilyHistoryAnswer.YES: "있음",
+            FamilyHistoryAnswer.NO: "없음",
+            FamilyHistoryAnswer.UNKNOWN: "모름",
+            FamilyHistoryAnswer.NO_SIBLINGS: "형제자매 없음",
+        }
+        return mapping[self]
+
+
 class ChallengeType(StrEnum):
     DAILY = "DAILY"  # Daily challenge
     WEEKLY = "WEEKLY"  # Weekly challenge
