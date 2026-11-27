@@ -1,10 +1,17 @@
 # Phase 1: 데이터 로드 및 탐색 (EDA) 결과 보고서 (DataAnalyzer 활용)
 
+> **초기 EDA 기록입니다. 현재 데이터·라벨과 다릅니다.**
+> 이 분석은 단일 연도 가공 파일과 "유병 여부" 변수를 그대로 타깃으로 쓴 초기 데이터 기준입니다. 해당 파일(`knhanes_processed.parquet`)과 결과 폴더(`docs/eda_results/`)는 지금 저장소에 없습니다.
+>
+> - 상관관계 상위의 `has_diabetes_diagnosis`(0.98), `hba1c`, `fbs`, `has_hypertension_diagnosis`(0.85), `sbp`는 현재 라벨의 원천 변수입니다. **해당 질환 모델의 입력에서 제외**하며, 높은 상관은 예측력이 아니라 라벨과 같은 정보라서 나타난 값입니다.
+> - 현재 데이터는 2020~2024년 다년도 병합본이고, 라벨·전처리·분할은 [AI 파이프라인 실행·재현 가이드](ai_pipeline_reproduction.md)의 1단계에서 만듭니다. 연도별 품질·라벨·분할 보고서는 `apps/ai/artifacts/reports/`에 생성됩니다(Git 제외).
+> - `DataAnalyzer`는 `apps/ai/src/components/data_analyzer.py`에 있으며, 결과 폴더는 `DataAnalyzer(df, output_dir_path)`의 `output_dir_path` 아래 `plots/`, `csv/`에 저장됩니다.
+
 ## 1. 데이터 개요
-- **데이터 소스**: `apps/ai/data/processed/knhanes/knhanes_processed.parquet`
+- **데이터 소스**: `apps/ai/data/processed/knhanes/knhanes_processed.parquet` (초기 데이터, 현재 없음)
 - **데이터 크기**: 15,497 행 (전처리 완료 데이터)
 - **주요 타겟 변수**: `diabetes_prevalence` (당뇨 유병), `hypertension_prevalence` (고혈압 유병)
-- **분석 도구**: `apps/ai/core/utils/data_analyzer.py` (`DataAnalyzer`)
+- **분석 도구**: `apps/ai/src/components/data_analyzer.py` (`DataAnalyzer`)
 
 ## 2. 상관관계 분석 결과 (Top 20)
 
