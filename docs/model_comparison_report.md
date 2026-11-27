@@ -1,99 +1,70 @@
-# 모델 성능 비교 보고서
+# 모델 성능 보고서
 
-본 보고서는 KNHANES 데이터를 활용하여 학습된 당뇨병 및 고혈압 판별 모델들의 성능을 비교 분석한 결과입니다. 총 5가지 알고리즘에 대해 일반 학습과 SMOTE(오버샘플링) 적용 학습 결과를 비교하였습니다.
+KNHANES 2020~2024 데이터로 학습한 당뇨병·고혈압 위험도 모델의 최종 성능입니다. 수치는 2024년 Test 데이터로 **한 번만** 평가한 결과입니다.
 
-## 1. 당뇨병 판별 모델 (Diabetes Diagnosis)
+- 재현 방법: [AI 파이프라인 실행·재현 가이드](ai_pipeline_reproduction.md)
+- 전체 보고서: 파이프라인 실행 후 `apps/ai/artifacts/reports/knhanes_final_evaluation/final_evaluation_report.md` (Git 제외)
 
-당뇨병 판별 모델은 전반적으로 매우 높은 AUC를 기록하고 있습니다. SMOTE 적용 시 재현율(Recall)이 향상되거나 전반적인 지표의 균형이 개선되는 효과가 확인되었습니다.
+> 이 문서는 초기 비교 보고서(2026-07)를 대체합니다. 초기 보고서의 당뇨 AUC 0.95는 라벨 원천 변수(진단 여부, 당화혈색소·공복혈당)가 입력에 포함된 결과라 현재 모델과 비교할 수 없고, 실행 스크립트(`scripts.run_machine_learning_workflow`)도 더 이상 존재하지 않습니다.
 
-### 1.1. 모델별 성능 지표 (일반 vs SMOTE)
+## 1. 평가 설계
 
-| 모델 알고리즘 | SMOTE | Accuracy | Precision | Recall | F1-Score | AUC |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Gradient Boosting** | 미적용 | 0.8939 | 0.8706 | 0.8183 | 0.8436 | **0.9546** |
-| | **적용** | 0.8884 | 0.8357 | 0.8475 | 0.8415 | 0.9532 |
-| LightGBM | 미적용 | 0.8933 | 0.8677 | 0.8200 | 0.8432 | 0.9523 |
-| | 적용 | **0.8962** | 0.8613 | 0.8383 | **0.8497** | 0.9527 |
-| Random Forest | 미적용 | 0.8939 | 0.8706 | 0.8183 | 0.8436 | 0.9494 |
-| | 적용 | 0.8916 | 0.8450 | 0.8450 | 0.8450 | 0.9514 |
-| Logistic Regression | 미적용 | 0.8901 | **0.9054** | 0.7658 | 0.8298 | 0.9501 |
-| | 적용 | 0.8936 | 0.8500 | **0.8450** | 0.8475 | 0.9508 |
-| XGBoost | 미적용 | 0.8860 | 0.8558 | 0.8108 | 0.8327 | 0.9456 |
-| | 적용 | 0.8898 | 0.8537 | 0.8267 | 0.8400 | 0.9488 |
+| 항목 | 내용 |
+|---|---|
+| 목적 | 미래 발병 예측이 아닌 **현재 상태의 위험도** 진단 |
+| 당뇨 라벨 | 의사 진단, 혈당강하제, 인슐린, 공복혈당 126 이상, HbA1c 6.5 이상 중 하나 |
+| 고혈압 라벨 | 수축기 140 이상, 이완기 90 이상, 고혈압약 복용, 현재 유병 중 하나 |
+| 입력 제외 | 해당 질환 라벨 기준에 쓰인 검사값·치료 변수 (데이터 누수 방지) |
+| 대상 | 19세 이상, 임신 중 응답자 제외. 기존 환자는 양성으로 포함 |
+| 분할 | Train 2022~2023(`train_b`), Validation, Test 2024. 같은 가구(`ID_fam`)는 한쪽에만 |
+| 모델 선택 | 가구 단위 교차검증 Optuna 튜닝 → 확률 보정 → 위험 등급 경계 산출. Test는 최종 1회만 사용 |
+| 신뢰구간 | 가구 단위 부트스트랩 1000회, 95% |
 
-### 1.2. 시각화 분석 (주요 모델)
+`undiagnosed`는 아직 진단받지 않은 사람(의사 진단·치료 이력 없음)만 모은 집단입니다. 이미 진단된 사람은 생활 정보만으로도 맞히기 쉬워 전체 성능이 높게 나오므로, 서비스가 실제로 도움을 주는 미진단자 성능을 함께 봅니다.
 
-당뇨병 판별 모델의 예측 성능을 시각적으로 분석한 결과입니다.
+## 2. 최종 성능 (2024년 Test)
 
-| 분석 항목 | 일반 학습 (Gradient Boosting) | SMOTE 적용 (LightGBM) |
-| :--- | :---: | :---: |
-| **Confusion Matrix** | ![CM](../apps/ai/models/reports/diabetes_diagnosis_GradientBoosting_confusion_matrix.png) | ![CM_SMOTE](../apps/ai/models/reports/diabetes_diagnosis_LightGBM_smote_confusion_matrix.png) |
-| **ROC Curve** | ![ROC](../apps/ai/models/reports/diabetes_diagnosis_GradientBoosting_roc_curve.png) | ![ROC_SMOTE](../apps/ai/models/reports/diabetes_diagnosis_LightGBM_smote_roc_curve.png) |
-| **Prob Distribution** | ![Dist](../apps/ai/models/reports/diabetes_diagnosis_GradientBoosting_probability_distribution.png) | ![Dist_SMOTE](../apps/ai/models/reports/diabetes_diagnosis_LightGBM_smote_probability_distribution.png) |
+| 질환 | 모델 | 집단 | 양성률 | ROC-AUC | PR-AUC | Brier | ECE |
+|---|---|---|---:|---:|---:|---:|---:|
+| 당뇨병 | LightGBM | 전체 | 0.176 | 0.864 (0.854~0.876) | 0.575 (0.544~0.607) | 0.105 | 0.021 |
+| | | 미진단자 | 0.043 | 0.786 (0.761~0.811) | 0.125 (0.099~0.161) | 0.057 | 0.073 |
+| 고혈압 | LightGBM | 전체 | 0.365 | 0.855 (0.846~0.864) | 0.751 (0.732~0.770) | 0.149 | 0.011 |
+| | | 미진단자 | 0.115 | 0.726 (0.707~0.746) | 0.213 (0.191~0.242) | 0.145 | 0.141 |
 
-### 1.3. 주요 분석 결과
-- **SMOTE의 효과**: SMOTE 적용 시 모든 모델에서 재현율(Recall)이 상승하였습니다. 특히 Logistic Regression은 재현율이 0.76에서 0.84로 크게 개선되어 미검출 위험을 낮추었습니다.
-- **예측 성향 변화**: `probability_distribution.png` 확인 결과, 일반 모델은 0(정상) 근처에 예측값이 밀집되어 있으나, SMOTE 모델은 1(유병)에 대한 확신도가 높아져 더 균형 잡힌 확률 분포를 보입니다.
-- **최우수 모델**: AUC 기준으로는 일반 학습된 **Gradient Boosting**이 0.9546으로 가장 우수하며, F1-Score 기준으로는 SMOTE를 적용한 **LightGBM**이 0.8497로 가장 균형 잡힌 성능을 보입니다.
-- **예측 성능**: 모든 모델이 AUC 0.945 이상의 매우 높은 성능을 보여, 현재 사용된 피처들이 당뇨병 예측에 매우 강력한 설명력을 가지고 있음을 재확인했습니다.
+- Test 성능이 Validation(당뇨 0.871, 고혈압 0.853)과 비슷해 과적합 없이 일반화됐습니다.
+- 미진단자에서는 평균 예측 위험도가 실제 양성률보다 높게 나옵니다(당뇨 0.115 vs 0.043, 고혈압 0.256 vs 0.115). 미진단자 위험도는 상대적인 순위로 해석해야 합니다.
 
----
+## 3. 위험 등급
 
-## 2. 고혈압 판별 모델 (Hypertension Diagnosis)
+보정된 확률을 경계 두 개로 LOW · MODERATE · HIGH로 나눕니다.
 
-고혈압 모델은 높은 재현율에 비해 상대적으로 낮았던 특이도(Specificity)가 SMOTE 적용 시 어떻게 변화하는지가 주요 분석 포인트입니다.
+| 질환 | MODERATE 경계 | HIGH 경계 |
+|---|---:|---:|
+| 당뇨병 | 0.0538 | 0.3048 |
+| 고혈압 | 0.1059 | 0.5843 |
 
-### 2.1. 모델별 성능 지표 (일반 vs SMOTE)
+| 질환 | 등급 | 전체 비율 | 실제 양성률 |
+|---|---|---:|---:|
+| 당뇨병 | LOW | 0.432 | 0.012 |
+| | MODERATE | 0.380 | 0.187 |
+| | HIGH | 0.187 | 0.532 |
+| 고혈압 | LOW | 0.289 | 0.040 |
+| | MODERATE | 0.417 | 0.327 |
+| | HIGH | 0.294 | 0.737 |
 
-| 모델 알고리즘 | SMOTE | Accuracy | Precision | Recall | F1-Score | AUC | 특이도 |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Gradient Boosting** | 미적용 | 0.8604 | 0.8844 | 0.9568 | 0.9192 | **0.8617** | 0.3904 |
-| | **적용** | 0.8481 | 0.9174 | 0.8978 | 0.9075 | 0.8524 | 0.6062 |
-| LightGBM | 미적용 | 0.8610 | 0.8903 | 0.9494 | 0.9189 | 0.8582 | 0.4298 |
-| | 적용 | 0.8572 | 0.9029 | 0.9276 | 0.9151 | 0.8531 | 0.5137 |
-| Random Forest | 미적용 | 0.8613 | 0.8823 | **0.9610** | **0.9200** | 0.8480 | 0.3750 |
-| | 적용 | 0.8449 | 0.9097 | 0.9027 | 0.9062 | 0.8472 | 0.5634 |
-| Logistic Regression | 미적용 | **0.8618** | 0.8881 | 0.9536 | 0.9197 | 0.8554 | 0.4144 |
-| | 적용 | 0.7826 | **0.9480** | 0.7808 | 0.8563 | 0.8548 | **0.7911** |
-| XGBoost | 미적용 | 0.8528 | 0.8870 | 0.9427 | 0.9140 | 0.8411 | 0.4144 |
-| | 적용 | 0.8540 | 0.8955 | 0.9329 | 0.9138 | 0.8432 | 0.4692 |
+- MODERATE 이상을 양성으로 보면 재현율이 당뇨 0.971, 고혈압 0.968로 환자를 거의 놓치지 않습니다.
+- HIGH는 특이도가 당뇨 0.894, 고혈압 0.878로, 정상인을 고위험으로 잘못 분류하는 비율이 낮습니다.
 
-### 2.2. 시각화 분석 (주요 모델)
+## 4. 주요 위험 요인 (SHAP)
 
-고혈압 모델의 특이도 개선 효과를 시각적으로 확인할 수 있습니다.
+Test 2000건의 원 변수 단위 평균 |SHAP| 상위 5개입니다. 단위는 보정 전 모델 출력(log-odds)입니다.
 
-| 분석 항목 | 일반 학습 (Gradient Boosting) | SMOTE 적용 (Logistic Regression) |
-| :--- | :---: | :---: |
-| **Confusion Matrix** | ![CM](../apps/ai/models/reports/hypertension_diagnosis_GradientBoosting_confusion_matrix.png) | ![CM_SMOTE](../apps/ai/models/reports/hypertension_diagnosis_LogisticRegression_smote_confusion_matrix.png) |
-| **ROC Curve** | ![ROC](../apps/ai/models/reports/hypertension_diagnosis_GradientBoosting_roc_curve.png) | ![ROC_SMOTE](../apps/ai/models/reports/hypertension_diagnosis_LogisticRegression_smote_roc_curve.png) |
-| **Prob Distribution** | ![Dist](../apps/ai/models/reports/hypertension_diagnosis_GradientBoosting_probability_distribution.png) | ![Dist_SMOTE](../apps/ai/models/reports/hypertension_diagnosis_LogisticRegression_smote_probability_distribution.png) |
+| 순위 | 당뇨병 | 고혈압 |
+|---:|---|---|
+| 1 | 나이 | 나이 |
+| 2 | 총콜레스테롤 | 허리둘레 |
+| 3 | 허리둘레 | 총콜레스테롤 |
+| 4 | 중성지방 | 중성지방 |
+| 5 | AST | 고혈압 가족력 보유 여부 |
 
-### 2.3. 주요 분석 결과
-- **특이도(Specificity)의 극적인 개선**: `confusion_matrix.png`를 비교해 보면, 일반 모델은 정상군(0)을 환자군(1)으로 오분류하는 비중이 매우 높았으나, SMOTE 적용 모델(특히 Logistic Regression)은 정상군을 정확히 찾아내는 비율이 비약적으로 높아졌습니다.
-- **트레이드오프 발생**: 특이도가 높아지면서 재현율(Recall)과 정확도(Accuracy)는 다소 하락하는 경향을 보입니다. 이는 모델이 단순히 '유병'으로만 예측하던 편향에서 벗어나 정상과 환자를 더 균형 있게 구분하게 되었음을 의미합니다.
-- **최우수 모델**: 높은 변별력(AUC)과 함께 임상적으로 중요한 오진율 감소(특이도 확보)를 고려할 때, SMOTE를 적용한 **Logistic Regression**이 고혈압 판별 모델로 가장 적합한 특성을 보입니다.
-
----
-
-## 3. 종합 결론 및 제언
-
-1. **데이터 불균형 처리의 유효성**:
-   - 당뇨병 모델에서는 SMOTE가 **재현율**을 높여 환자를 놓치지 않는 성능을 강화했습니다.
-   - 고혈압 모델에서는 SMOTE가 **특이도**를 확보하여 모델의 과도한 편향을 해결하는 핵심 역할을 했습니다.
-
-2. **최종 모델 추천**:
-   - **당뇨병**: 전반적인 밸런스와 높은 정확도를 원한다면 **SMOTE-LightGBM** 또는 최고의 변별력을 가진 **Gradient Boosting** 추천.
-   - **고혈압**: 오진율을 낮추고 실제 진단 보조로 활용하려면 특이도가 우수한 **SMOTE-Logistic Regression** 추천.
-
-3. **향후 과제**:
-   - SHAP 분석을 수행하여 SMOTE 적용이 모델의 의사결정 로직(주요 변수 기여도)에 어떤 긍정적 변화를 주었는지 검증해야 합니다.
-   - 실제 서비스 적용 시 정밀도와 재현율의 중요도에 따라 분류 임계값(Threshold)을 최적화하는 단계가 필요합니다.
-
----
-*참고: 상세 시각화 자료(Confusion Matrix, ROC Curve 등)는 아래 명령어를 실행한 후 `apps/ai/models/reports/` 디렉토리에서 확인할 수 있습니다.*
-```bash
-cd apps/ai
-source .venv/bin/activate
-
-python3 -m scripts.run_machine_learning_workflow
-```
+- 챌린지 추천에는 이 중 생활습관으로 바꿀 수 있는 요인만 근거로 씁니다. 나이·성별·가족력·진단 여부와, 치료 후 낮아지는 역인과가 의심되는 총콜레스테롤은 제외합니다.

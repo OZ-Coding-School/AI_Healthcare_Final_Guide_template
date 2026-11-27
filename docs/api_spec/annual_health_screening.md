@@ -29,8 +29,8 @@
   | ast | integer | Y | AST (간기능) |
   | alt | integer | Y | ALT (간기능) |
   | creatinine | decimal | Y | 크레아티닌 |
-  | urine_protein | string | Y | 요단백 (Enum: UrineProteinStatus - NEGATIVE, TRACE, POSITIVE_1, POSITIVE_2, POSITIVE_3, POSITIVE_4) |
-  | urine_glucose | string | Y | 요당 (Enum: UrineGlucoseStatus - NEGATIVE, TRACE, POSITIVE_1, POSITIVE_2, POSITIVE_3, POSITIVE_4) |
+  | urine_protein | string | Y | 요단백 (Enum: UrineProteinStatus - `-`(음성), `±`(약양성), `1+`, `2+`, `3+`, `4+`) |
+  | urine_glucose | string | Y | 요당 (Enum: UrineGlucoseStatus - `-`(음성), `±`(약양성), `1+`, `2+`, `3+`, `4+`) |
   | family_history_diabetes | boolean | Y | 당뇨 가족력 여부 |
   | family_history_hypertension | boolean | Y | 고혈압 가족력 여부 |
   | diabetes_family_history_father | string | N | 당뇨 가족력 - 아버지 (Enum: FamilyHistoryAnswer - YES, NO, UNKNOWN) |
@@ -67,8 +67,8 @@
     "ast": 25,
     "alt": 20,
     "creatinine": 1.0,
-    "urine_protein": "NEGATIVE",
-    "urine_glucose": "NEGATIVE",
+    "urine_protein": "-",
+    "urine_glucose": "-",
     "family_history_diabetes": false,
     "family_history_hypertension": false,
     "screening_at": "2024-05-20",
