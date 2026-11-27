@@ -34,16 +34,6 @@ dev = [
     "ruff>=0.14.14",
 ]
 
-[tool.uv.sources]
-torch = [
-    { index = "pytorch-cpu" },
-]
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
-
 [tool.pytest.ini_options]
 pythonpath = ["."]
 asyncio_mode = "auto"
@@ -88,3 +78,6 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[tool.uv]
+package = false
