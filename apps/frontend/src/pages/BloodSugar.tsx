@@ -48,6 +48,12 @@ const EXERCISE_TYPE_OPTIONS: { value: ExerciseType; label: string }[] = [
   { value: "NOT_APPLICABLE", label: "해당사항 없음" },
 ];
 
+const AFTER_MEAL_TYPES: BloodSugarMeasureType[] = [
+  "AFTER_BREAKFAST",
+  "AFTER_LUNCH",
+  "AFTER_DINNER",
+];
+
 /* ── Blood Sugar Status ── */
 type BloodSugarStatus = "low" | "normal" | "high" | "very_high";
 
@@ -182,7 +188,7 @@ function MeasurementForm({ onCancel, onSuccess }: { onCancel: () => void; onSucc
         measured_at: new Date(form.measured_at).toISOString(),
       };
 
-      if (form.measure_type === "POST_MEAL" && form.minutes_since_meal) {
+      if (AFTER_MEAL_TYPES.includes(form.measure_type) && form.minutes_since_meal) {
         payload.minutes_since_meal = form.minutes_since_meal;
       }
 
@@ -290,7 +296,7 @@ function MeasurementForm({ onCancel, onSuccess }: { onCancel: () => void; onSucc
               }}
             />
           </Field>
-          {form.measure_type === "POST_MEAL" && (
+          {AFTER_MEAL_TYPES.includes(form.measure_type) && (
             <Field label="식후 경과 시간 (분)" hint="선택 사항">
               <input
                 type="number"

@@ -23,6 +23,7 @@ import { getHealthProfile, HealthProfile } from "../shared/api/healthProfileApi"
 import {
   getHealthSurveyDetail,
   getHealthSurveys,
+  DRINKING_FREQUENCY_LABELS,
   HealthSurveyDetail,
 } from "../shared/api/healthSurveyApi";
 import { formatDateTime, formatDate } from "../shared/utils/format";
@@ -222,15 +223,6 @@ export default function Dashboard() {
     return { status: "danger", label: "고혈압" };
   };
 
-  const getFastingBloodSugarStatus = (
-    fbs?: number
-  ): { status: "good" | "normal" | "warning" | "danger"; label: string } | null => {
-    if (!fbs) return null;
-    if (fbs < 100) return { status: "good", label: "정상" };
-    if (fbs < 126) return { status: "warning", label: "공복혈당장애" };
-    return { status: "danger", label: "당뇨" };
-  };
-
   const calculateAge = (birthDate?: string) => {
     if (!birthDate) return null;
     const today = new Date();
@@ -245,11 +237,6 @@ export default function Dashboard() {
 
   const bmi = healthProfile ? calculateBMI(healthProfile.height, healthProfile.weight) : null;
   const bmiStatus = bmi ? getBMIStatus(parseFloat(bmi)) : null;
-  const bpStatus = getBloodPressureStatus(
-    healthProfile?.systolic_blood_pressure,
-    healthProfile?.diastolic_blood_pressure
-  );
-  const fbsStatus = getFastingBloodSugarStatus(healthProfile?.fasting_blood_sugar);
   const age = calculateAge(healthProfile?.birth_date);
 
   // Get latest health survey
@@ -330,7 +317,7 @@ export default function Dashboard() {
             나의 건강지표
           </h2>
 
-          {bmi || bpStatus || fbsStatus || latestSurvey ? (
+          {bmi || latestSurvey ? (
             <div className="bg-white border border-border rounded-xl p-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left: Health Profile Data */}
@@ -436,97 +423,6 @@ export default function Dashboard() {
                           </div>
                         </div>
                       )}
-
-                      {healthProfile.systolic_blood_pressure &&
-                        healthProfile.diastolic_blood_pressure &&
-                        bpStatus && (
-                          <div
-                            className="flex items-center justify-between p-3 rounded-lg"
-                            style={{ backgroundColor: "rgba(249,115,22,0.05)" }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Activity size={16} style={{ color: "#F97316" }} />
-                              <span className="text-sm text-foreground">혈압</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="font-bold"
-                                style={{ fontFamily: "JetBrains Mono", color: "#F97316" }}
-                              >
-                                {healthProfile.systolic_blood_pressure}/
-                                {healthProfile.diastolic_blood_pressure}
-                                <span className="text-xs text-muted-foreground ml-1">mmHg</span>
-                              </span>
-                              <div
-                                className="px-2 py-0.5 rounded text-xs font-medium"
-                                style={{
-                                  backgroundColor:
-                                    bpStatus.status === "good"
-                                      ? "rgba(16,185,129,0.1)"
-                                      : bpStatus.status === "normal"
-                                        ? "rgba(59,130,246,0.1)"
-                                        : bpStatus.status === "warning"
-                                          ? "rgba(245,158,11,0.1)"
-                                          : "rgba(239,68,68,0.1)",
-                                  color:
-                                    bpStatus.status === "good"
-                                      ? "#10B981"
-                                      : bpStatus.status === "normal"
-                                        ? "#3B82F6"
-                                        : bpStatus.status === "warning"
-                                          ? "#F59E0B"
-                                          : "#EF4444",
-                                }}
-                              >
-                                {bpStatus.label}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                      {healthProfile.fasting_blood_sugar && fbsStatus && (
-                        <div
-                          className="flex items-center justify-between p-3 rounded-lg"
-                          style={{ backgroundColor: "rgba(239,68,68,0.05)" }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Droplet size={16} style={{ color: "#EF4444" }} />
-                            <span className="text-sm text-foreground">공복혈당</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="font-bold"
-                              style={{ fontFamily: "JetBrains Mono", color: "#EF4444" }}
-                            >
-                              {healthProfile.fasting_blood_sugar}
-                              <span className="text-xs text-muted-foreground ml-1">mg/dL</span>
-                            </span>
-                            <div
-                              className="px-2 py-0.5 rounded text-xs font-medium"
-                              style={{
-                                backgroundColor:
-                                  fbsStatus.status === "good"
-                                    ? "rgba(16,185,129,0.1)"
-                                    : fbsStatus.status === "normal"
-                                      ? "rgba(59,130,246,0.1)"
-                                      : fbsStatus.status === "warning"
-                                        ? "rgba(245,158,11,0.1)"
-                                        : "rgba(239,68,68,0.1)",
-                                color:
-                                  fbsStatus.status === "good"
-                                    ? "#10B981"
-                                    : fbsStatus.status === "normal"
-                                      ? "#3B82F6"
-                                      : fbsStatus.status === "warning"
-                                        ? "#F59E0B"
-                                        : "#EF4444",
-                              }}
-                            >
-                              {fbsStatus.label}
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     <button
@@ -594,12 +490,12 @@ export default function Dashboard() {
                             <span className="font-semibold text-sm" style={{ color: "#F59E0B" }}>
                               {latestSurvey.drinking_status}
                             </span>
-                            {latestSurvey.drinking_fr_per_week && (
+                            {latestSurvey.drinking_frequency && (
                               <span
                                 className="text-xs text-muted-foreground"
                                 style={{ fontFamily: "JetBrains Mono" }}
                               >
-                                ({latestSurvey.drinking_fr_per_week}회/주)
+                                ({DRINKING_FREQUENCY_LABELS[latestSurvey.drinking_frequency]})
                               </span>
                             )}
                           </div>
@@ -646,25 +542,6 @@ export default function Dashboard() {
                                 {surveyBpStatus.label}
                               </div>
                             </div>
-                          </div>
-                        )}
-
-                        {latestSurvey.pulse && (
-                          <div
-                            className="flex items-center justify-between p-3 rounded-lg"
-                            style={{ backgroundColor: "rgba(16,185,129,0.05)" }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Heart size={16} style={{ color: "#10B981" }} />
-                              <span className="text-sm text-foreground">맥박</span>
-                            </div>
-                            <span
-                              className="font-bold"
-                              style={{ fontFamily: "JetBrains Mono", color: "#10B981" }}
-                            >
-                              {latestSurvey.pulse}
-                              <span className="text-xs text-muted-foreground ml-1">bpm</span>
-                            </span>
                           </div>
                         )}
                       </div>
