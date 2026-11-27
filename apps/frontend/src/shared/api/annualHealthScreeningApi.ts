@@ -5,6 +5,39 @@ const BASE = "/api/v1/annual-health-screenings";
 export type UrineProteinStatus = "-" | "±" | "1+" | "2+" | "3+" | "4+";
 export type UrineGlucoseStatus = "-" | "±" | "1+" | "2+" | "3+" | "4+";
 
+export type FamilyHistoryAnswer = "YES" | "NO" | "UNKNOWN" | "NO_SIBLINGS";
+export type FamilyHistoryRelation = "father" | "mother" | "siblings";
+export type FamilyHistoryDisease = "diabetes" | "hypertension";
+
+export const FAMILY_HISTORY_ANSWER_LABELS: Record<FamilyHistoryAnswer, string> = {
+  YES: "있음",
+  NO: "없음",
+  UNKNOWN: "모름",
+  NO_SIBLINGS: "형제자매 없음",
+};
+
+export const FAMILY_HISTORY_RELATIONS: { key: FamilyHistoryRelation; label: string }[] = [
+  { key: "father", label: "아버지" },
+  { key: "mother", label: "어머니" },
+  { key: "siblings", label: "형제자매" },
+];
+
+export interface FamilyHistoryDetail {
+  diabetes_family_history_father?: FamilyHistoryAnswer | null;
+  diabetes_family_history_mother?: FamilyHistoryAnswer | null;
+  diabetes_family_history_siblings?: FamilyHistoryAnswer | null;
+  hypertension_family_history_father?: FamilyHistoryAnswer | null;
+  hypertension_family_history_mother?: FamilyHistoryAnswer | null;
+  hypertension_family_history_siblings?: FamilyHistoryAnswer | null;
+}
+
+export function familyHistoryDetailKey(
+  disease: FamilyHistoryDisease,
+  relation: FamilyHistoryRelation
+): keyof FamilyHistoryDetail {
+  return `${disease}_family_history_${relation}`;
+}
+
 export interface AnnualHealthScreening {
   id: string;
   title: string;
@@ -12,7 +45,7 @@ export interface AnnualHealthScreening {
   created_at: string;
 }
 
-export interface AnnualHealthScreeningDetail extends AnnualHealthScreening {
+export interface AnnualHealthScreeningDetail extends AnnualHealthScreening, FamilyHistoryDetail {
   height: number;
   weight: number;
   bmi: number;
@@ -35,7 +68,7 @@ export interface AnnualHealthScreeningDetail extends AnnualHealthScreening {
   is_fasting: boolean;
 }
 
-export interface CreateAnnualHealthScreeningBody {
+export interface CreateAnnualHealthScreeningBody extends FamilyHistoryDetail {
   height: number;
   weight: number;
   bmi: number;
